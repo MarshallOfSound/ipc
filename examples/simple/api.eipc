@@ -1,0 +1,46 @@
+module example.simple
+
+validator OnlyElectronJSDotOrg = AND(
+    origin is "https://www.electronjs.org"
+    OR(
+        is_main_frame is true
+        protocol is "https"
+    )
+)
+
+subtype ComputerName = string(
+    minLength: 2
+    maxLength: 20
+)
+
+enum ComputerPlatform {
+    MacOSX = "darwin"
+    Windows
+    Linux
+}
+
+structure ComputerStuff {
+    name: string
+    platform?: ComputerPlatform
+    gpuInfo: {
+        name: string
+        year: number
+        enabled: boolean
+    }
+}
+
+[RendererAPI]
+[Validator=OnlyElectronJSDotOrg]
+[ContextBridge]
+interface ComputerInfo {
+    GetName(foo: ComputerPlatform) -> string
+    [Sync]
+    GetNameSync() -> string
+    GetStuff() -> ComputerStuff
+}
+
+[BroadcastAPI]
+[Validator=OnlyElectronJSDotOrg]
+interface ComputerInfoObserver {
+    NameChanged(newName: string)
+}
