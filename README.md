@@ -1,6 +1,6 @@
 # @electron/ipc
 
-> Experimental IPC module for Electron, provides type safe, valdiated and
+> Experimental IPC module for Electron, provides type safe, validated and
 > secure IPC messaging with zero boilerplate
 
 ## What is this module?
