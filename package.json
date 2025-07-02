@@ -13,8 +13,7 @@
     "prettier:write": "prettier --write \"src/**/*.ts\""
   },
   "dependencies": {
-    "peggy": "^1.2.0",
-    "uuid": "^11.1.0"
+    "peggy": "^1.2.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

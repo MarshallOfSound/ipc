@@ -487,11 +487,6 @@ universalify@^0.1.0:
   resolved "https://artifactory.infra.ant.dev:443/artifactory/api/npm/npm-all/universalify/0.1.2/universalify-0.1.2.tgz#b646f69be3942dabcecc9d6639c80dc105efaa66"
   integrity sha1-tkb2m+OULavOzJ1mOcgNwQXvqmY=
 
-uuid@^11.1.0:
-  version "11.1.0"
-  resolved "https://artifactory.infra.ant.dev:443/artifactory/api/npm/npm-all/uuid/-/uuid-11.1.0.tgz#9549028be1753bb934fc96e2bca09bb4105ae912"
-  integrity sha512-0/A9rDy9P7cJ+8w1c9WD9V//9Wj15Ce2MPz8Ri6032usz+NfePxx5AcN3bN+r6ZL6jEo066/yNYB3tn4pQEx+A==
-
 wrappy@1:
   version "1.0.2"
   resolved "https://artifactory.infra.ant.dev:443/artifactory/api/npm/npm-all/wrappy/1.0.2/wrappy-1.0.2.tgz#b5243d8f3ec1aa35f1364605bc0d1036e30ab69f"

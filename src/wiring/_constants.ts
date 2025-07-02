@@ -1,4 +1,3 @@
-import * as uuid from 'uuid';
 import { Interface, InterfaceMethod, Schema } from '../schema-type';
 
 export const INLINE_STRUCTURE_JOINER = '_$inline$_';
@@ -10,7 +9,7 @@ export const EVENT_VALIDATOR_PREFIX = '$eipc_event_validator$_';
 // channels will be different per build (please note that this isn't a runtime
 // changeable prefix, rather this configures the hard coded prefix in each built
 // interface file)
-export const IPC_MESSAGE_PREFIX = `$eipc_message$_${uuid.v4()}_$_`;
+export const IPC_MESSAGE_PREFIX = `$eipc_message$_${crypto.randomUUID()}_$_`;
 
 export const ipcMessage = (schema: Schema, int: Interface, method: InterfaceMethod) => `${IPC_MESSAGE_PREFIX}${schema.name}_$_${int.name}_$_${method.name}`;
 export const validator = (symbolName: string) => `${VALIDATOR_PREFIX}${symbolName}`;
