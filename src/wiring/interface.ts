@@ -9,6 +9,7 @@ enum InterfaceType {
 
 type MethodTagInfo = {
   synchronous: boolean;
+  event: boolean;
 };
 
 const validatorFnOrPrimitiveValidator = (type: string, argName: string, nullable: boolean) => {
@@ -22,14 +23,22 @@ const validatorFnOrPrimitiveValidator = (type: string, argName: string, nullable
 function methodTagInfo(method: InterfaceMethod) {
   const info: MethodTagInfo = {
     synchronous: false,
+    event: false,
   };
 
   for (const tag of method.tags) {
     if (tag.key === 'Sync') {
       info.synchronous = true;
+    } else if (tag.key === 'Event') {
+      info.event = true;
     } else {
       throw new Error(`Unrecognized tag "${tag.key}" on method "${method.name}"`);
     }
+  }
+
+  // Validate that Event methods don't have return types
+  if (info.event && method.returns !== null) {
+    throw new Error(`Method "${method.name}" is tagged with [Event] but has a return type. Events must not have return types.`);
   }
 
   return info;
@@ -74,6 +83,10 @@ function interfaceTagInfo(int: Interface) {
   };
 }
 
+function upFirst(s: string) {
+  return s[0].toUpperCase() + s.slice(1);
+}
+
 function methodReturn(method: InterfaceMethod, syncMeansNoPromise = false) {
   const inner = method.returns === null ? 'void' : `${method.returns.type}${method.returns.nullable ? ' | null' : ''}`;
   const info = methodTagInfo(method);
@@ -90,46 +103,84 @@ export function wireInterface(int: Interface, controller: Controller, schema: Sc
     const initializerName = `${INTERFACE_IMPL_PREFIX}_init_${int.name}`;
     const interfaceImplementation = [
       `export const ${int.name} = {`,
-      `  setImplementation: (impl: I${int.name}Impl, ipc: Electron.IpcMain = ipcMain) => {`,
-      ...int.methods.map((method) => {
-        const tags = methodTagInfo(method);
-        return [
-          `ipc.${tags.synchronous ? 'removeAllListeners' : 'removeHandler'}('${ipcMessage(schema, int, method)}');`,
-          `ipc.${tags.synchronous ? 'on' : 'handle'}('${ipcMessage(schema, int, method)}', async (event${method.arguments.length ? ', ' : ''}${method.arguments
-            .map((arg) => `arg_${arg.name}: ${arg.argType}`)
-            .join(', ')}) => {`,
-          `  if (!(${intInfo.validators.map((v) => `(${eventValidator(v)}(event))`).join(' && ')})) {`,
-          `    throw new Error(\`Incoming "${method.name}" call on interface "${int.name}" from \'$\{event.senderFrame?.url}\' did not pass origin validation\`);`,
-          '  }',
-          ...method.arguments.map(
-            (arg, index) =>
-              `  if (!${validatorFnOrPrimitiveValidator(arg.argType, `arg_${arg.name}`, arg.nullable)}) throw new Error('Argument "${arg.name}" at position ${index} to method "${
-                method.name
-              }" in interface "${int.name}" failed to pass validation');`,
-          ),
-          `  ${method.returns === null ? '' : 'const result = '}await impl.${method.name}(${method.arguments.map((arg) => `arg_${arg.name}`).join(', ')});`,
-          ...(method.returns === null
-            ? []
-            : [
-                `  if (!${validatorFnOrPrimitiveValidator(method.returns.type, 'result', method.returns.nullable)}) throw new Error('Result from method "${method.name}" in interface "${
-                  int.name
-                }" failed to pass validation');`,
-                // TODO: Better error handling for the sync case (try/catch, { result, error } return value)
-                tags.synchronous ? '  event.returnValue = result;' : '  return result;',
-              ]),
-          `});`,
-        ].join('\n');
-      }),
-      '  }',
+      `  for(target: Electron.WebContents | Electron.WebFrameMain) {`,
+      `    return {`,
+      `      setImplementation: (impl: I${int.name}Impl) => {`,
+      ...int.methods
+        .filter((method) => !methodTagInfo(method).event)
+        .map((method) => {
+          const tags = methodTagInfo(method);
+          return [
+            `        target.ipc.${tags.synchronous ? 'removeAllListeners' : 'removeHandler'}('${ipcMessage(schema, int, method)}');`,
+            `target.ipc.${tags.synchronous ? 'on' : 'handle'}('${ipcMessage(schema, int, method)}', async (event${method.arguments.length ? ', ' : ''}${method.arguments
+              .map((arg) => `arg_${arg.name}: ${arg.argType}`)
+              .join(', ')}) => {`,
+            `  if (!(${intInfo.validators.map((v) => `(${eventValidator(v)}(event))`).join(' && ')})) {`,
+            `    throw new Error(\`Incoming "${method.name}" call on interface "${int.name}" from \'$\{event.senderFrame?.url}\' did not pass origin validation\`);`,
+            '  }',
+            ...method.arguments.map(
+              (arg, index) =>
+                `  if (!${validatorFnOrPrimitiveValidator(arg.argType, `arg_${arg.name}`, arg.nullable)}) throw new Error('Argument "${arg.name}" at position ${index} to method "${
+                  method.name
+                }" in interface "${int.name}" failed to pass validation');`,
+            ),
+            `  ${method.returns === null ? '' : 'const result = '}await impl.${method.name}(${method.arguments.map((arg) => `arg_${arg.name}`).join(', ')});`,
+            ...(method.returns === null
+              ? []
+              : [
+                  `  if (!${validatorFnOrPrimitiveValidator(method.returns.type, 'result', method.returns.nullable)}) throw new Error('Result from method "${method.name}" in interface "${
+                    int.name
+                  }" failed to pass validation');`,
+                  // TODO: Better error handling for the sync case (try/catch, { result, error } return value)
+                  tags.synchronous ? '  event.returnValue = result;' : '  return result;',
+                ]),
+            `});`,
+          ].join('\n        ');
+        }),
+      `        return {`,
+      ...int.methods
+        .filter((m) => methodTagInfo(m).event)
+        .map((event) =>
+          [
+            `dispatch${upFirst(event.name)}(${event.arguments.map((arg) => `${arg.name}: ${arg.argType}${arg.nullable ? ' | null' : ''}`).join(', ')}): void {`,
+            ...event.arguments.map(
+              (arg, index) =>
+                `  if (!${validatorFnOrPrimitiveValidator(arg.argType, arg.name, arg.nullable)}) throw new Error('Argument "${arg.name}" at position ${index} to event "${
+                  event.name
+                }" in interface "${int.name}" failed to pass validation');`,
+            ),
+            `  target.send('${ipcMessage(schema, int, event)}'${event.arguments.length > 0 ? ', ' : ''}${event.arguments.map((arg) => arg.name).join(', ')})`,
+            '}',
+          ]
+            .map((s) => `          ${s}`)
+            .join('\n'),
+        ),
+      `        }`,
+      '      }',
+      `    };`,
+      `  }`,
       '}',
     ];
 
     const interfaceDefinition = [
       `export interface I${int.name}Impl {`,
-      ...int.methods.map((method) => `  ${method.name}(${method.arguments.map((arg) => `${arg.name}: ${arg.argType}${arg.nullable ? ' | null' : ''}`).join(', ')}): ${methodReturn(method)};`),
+      ...int.methods
+        .filter((m) => !methodTagInfo(m).event)
+        .map((method) => `  ${method.name}(${method.arguments.map((arg) => `${arg.name}: ${arg.argType}${arg.nullable ? ' | null' : ''}`).join(', ')}): ${methodReturn(method)};`),
       '}',
       `export interface I${int.name}Renderer {`,
-      ...int.methods.map((method) => `  ${method.name}(${method.arguments.map((arg) => `${arg.name}: ${arg.argType}${arg.nullable ? ' | null' : ''}`).join(', ')}): ${methodReturn(method, true)};`),
+      ...int.methods
+        .filter((m) => !methodTagInfo(m).event)
+        .map(
+          (method) =>
+            `  ${method.name}(${method.arguments.map((arg) => `${arg.name}: ${arg.argType}${arg.nullable ? ' | null' : ''}`).join(', ')}): ${methodReturn(method, true)};`,
+        ),
+      ...int.methods
+        .filter((m) => methodTagInfo(m).event)
+        .map(
+          (method) =>
+            `  on${upFirst(method.name)}(fn: (${method.arguments.map((arg) => `${arg.name}: ${arg.argType}${arg.nullable ? ' | null' : ''}`).join(', ')}) => void): void;`,
+        ),
       '}',
     ];
 
@@ -137,8 +188,19 @@ export function wireInterface(int: Interface, controller: Controller, schema: Sc
       `export const ${int.name}: I${int.name}Renderer = {`,
       ...int.methods.map((method) => {
         const info = methodTagInfo(method);
+        const argsString = method.arguments.map((arg) => `${arg.name}: ${arg.argType}${arg.nullable ? ' | null' : ''}`).join(', ');
+
+        if (info.event) {
+          return [
+            `  on${upFirst(method.name)}(fn: (${argsString}) => void) {`,
+            `    const handler = (e: unknown, ${argsString}) => fn(${method.arguments.map((arg) => arg.name).join(', ')});`,
+            `    ipcRenderer.on('${ipcMessage(schema, int, method)}', handler)`,
+            `    return ipcRenderer.removeListener('${ipcMessage(schema, int, method)}', handler)`,
+            `  },`,
+          ].join('\n');
+        }
         return [
-          `  ${method.name}(${method.arguments.map((arg) => `${arg.name}: ${arg.argType}`).join(', ')}) {`,
+          `  ${method.name}(${argsString}) {`,
           ...[
             `return ipcRenderer.${info.synchronous ? 'sendSync' : 'invoke'}('${ipcMessage(schema, int, method)}'${method.arguments.length ? ', ' : ''}${method.arguments
               .map((arg) => `${arg.name}`)

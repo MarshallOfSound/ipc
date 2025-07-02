@@ -208,7 +208,7 @@ InterfaceBody "interface_body"
   = (Method)*
 
 Method "method"
-  = tags:BlockTagGroup WhiteSpace name:IdentifierName'('args:ArgumentsSpread?')'returns:ReturnType newline {
+  = tags:BlockTagGroup MaybeWhiteSpace name:IdentifierName'('args:ArgumentsSpread?')'returns:ReturnType newline {
     return {
       type: 'Method',
       tags: tags,

@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(npm run build:*)",
-      "Bash(npm run prettier:*)"
+      "Bash(npm run prettier:*)",
+      "Bash(yarn build)",
+      "Bash(node:*)"
     ],
     "deny": []
   }

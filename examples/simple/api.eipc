@@ -38,6 +38,8 @@ interface ComputerInfo {
     GetNameSync() -> string
     GetStuff() -> ComputerStuff
     GetOptionalNumber() -> number?
+    [Event]
+    OnShutdown(foo: string)
 }
 
 [BroadcastAPI]
