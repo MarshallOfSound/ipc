@@ -185,7 +185,7 @@ export function buildWiring(schema: Schema): Wiring {
   preload = commonImportString + preload;
 
   if (rendererBridgeInitializers.length) {
-    preload += `${rendererBridgeInitializers.map((init) => `${init}(bridged);`)}\n`;
+    preload += `${rendererBridgeInitializers.map((init) => `${init}(bridged);`).join('\n')}\n`;
     preload += `Object.keys(bridged).forEach(key => contextBridge.exposeInMainWorld(key, bridged[key]));\n`;
   }
 
