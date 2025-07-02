@@ -126,10 +126,10 @@ export function wireInterface(int: Interface, controller: Controller, schema: Sc
 
     const interfaceDefinition = [
       `export interface I${int.name}Impl {`,
-      ...int.methods.map((method) => `  ${method.name}(${method.arguments.map((arg) => `${arg.name}: ${arg.argType}`).join(', ')}): ${methodReturn(method)};`),
+      ...int.methods.map((method) => `  ${method.name}(${method.arguments.map((arg) => `${arg.name}: ${arg.argType}${arg.nullable ? ' | null' : ''}`).join(', ')}): ${methodReturn(method)};`),
       '}',
       `export interface I${int.name}Renderer {`,
-      ...int.methods.map((method) => `  ${method.name}(${method.arguments.map((arg) => `${arg.name}: ${arg.argType}`).join(', ')}): ${methodReturn(method, true)};`),
+      ...int.methods.map((method) => `  ${method.name}(${method.arguments.map((arg) => `${arg.name}: ${arg.argType}${arg.nullable ? ' | null' : ''}`).join(', ')}): ${methodReturn(method, true)};`),
       '}',
     ];
 
