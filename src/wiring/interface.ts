@@ -77,37 +77,24 @@ function methodReturn(method: InterfaceMethod, syncMeansNoPromise = false) {
   if (syncMeansNoPromise && info.synchronous) {
     return inner;
   }
-  return `Promise<${inner}>`;
+  return `Promise<${inner}> | ${inner}`;
 }
 
 export function wireInterface(int: Interface, controller: Controller, schema: Schema): void {
   const intInfo = interfaceTagInfo(int);
 
   if (intInfo.interfaceType === InterfaceType.RendererAPI) {
-    const implName = `${INTERFACE_IMPL_PREFIX}${int.name}`;
-    const implProvidedCheck = `  if (${implName} === null) throw new Error('The "${int.name}" interface has not been initialized, ensure you have called ${int.name}.setImplementation');`;
-
     const initializerName = `${INTERFACE_IMPL_PREFIX}_init_${int.name}`;
     const interfaceImplementation = [
-      `let ${implName}: I${int.name}Impl | null = null;`,
-      `let ${initializerName}_ran = false;`,
       `export const ${int.name} = {`,
-      `  setImplementation: (impl: I${int.name}Impl) => {`,
-      `    ${implName} = impl;`,
-      `    if (!${initializerName}_ran) {`,
-      `      ${initializerName}_ran = true;`,
-      `      ${initializerName}()`,
-      `    }`,
-      '  }',
-      '}',
-      `function ${initializerName}() {`,
+      `  setImplementation: (impl: I${int.name}Impl, ipc: Electron.IpcMain = ipcMain) => {`,
       ...int.methods.map((method) => {
         const tags = methodTagInfo(method);
         return [
-          `ipcMain.${tags.synchronous ? 'on' : 'handle'}('${ipcMessage(schema, int, method)}', async (event${method.arguments.length ? ', ' : ''}${method.arguments
+          `ipc.${tags.synchronous ? 'removeAllListeners' : 'removeHandler'}('${ipcMessage(schema, int, method)}');`,
+          `ipc.${tags.synchronous ? 'on' : 'handle'}('${ipcMessage(schema, int, method)}', async (event${method.arguments.length ? ', ' : ''}${method.arguments
             .map((arg) => `arg_${arg.name}: ${arg.argType}`)
             .join(', ')}) => {`,
-          implProvidedCheck,
           `  if (!(${intInfo.validators.map((v) => `(${eventValidator(v)}(event))`).join(' && ')})) {`,
           `    throw new Error(\`Incoming "${method.name}" call on interface "${int.name}" from \'$\{event.senderFrame?.url}\' did not pass origin validation\`);`,
           '  }',
@@ -117,7 +104,7 @@ export function wireInterface(int: Interface, controller: Controller, schema: Sc
                 method.name
               }" in interface "${int.name}" failed to pass validation');`,
           ),
-          `  ${method.returns === null ? '' : 'const result = '}await ${implName}.${method.name}(${method.arguments.map((arg) => `arg_${arg.name}`).join(', ')});`,
+          `  ${method.returns === null ? '' : 'const result = '}await impl.${method.name}(${method.arguments.map((arg) => `arg_${arg.name}`).join(', ')});`,
           ...(method.returns === null
             ? []
             : [
@@ -130,6 +117,7 @@ export function wireInterface(int: Interface, controller: Controller, schema: Sc
           `});`,
         ].join('\n');
       }),
+      '  }',
       '}',
     ];
 
@@ -169,14 +157,15 @@ export function wireInterface(int: Interface, controller: Controller, schema: Sc
     ];
 
     if (intInfo.autoContextBridge) {
-      controller.addRendererBridgeInitializer(initializerName);
+      controller.addPreloadBridgeInitializer(initializerName);
+      controller.addPreloadBridgeKeyAndType(schema.name, int.name, `I${int.name}Renderer`);
     }
 
     controller.addCommonCode(interfaceDefinition.join('\n'));
     controller.addBrowserCode(interfaceImplementation.join('\n'));
-    controller.addRendererCode(rendererDefinition.join('\n'));
+    controller.addPreloadCode(rendererDefinition.join('\n'));
     controller.addPublicBrowserExport(int.name);
-    controller.addPublicRendererExport(int.name);
+    controller.addPublicPreloadExport(int.name);
     controller.addCommonExport(`I${int.name}Impl`);
     controller.addPublicCommonExport(`I${int.name}Impl`);
     controller.addCommonExport(`I${int.name}Renderer`);

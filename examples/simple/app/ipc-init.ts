@@ -1,1 +1,1 @@
-import './ipc/renderer/example.simple';
+import './ipc/preload/example.simple';

@@ -56,7 +56,7 @@ export async function generateWiring(opts: WiringOptions) {
     recursive: true,
   });
   for (const parent of [opts.wiringFolder, path.resolve(opts.wiringFolder, '_internal')]) {
-    for (const dir of ['browser', 'renderer', 'common']) {
+    for (const dir of ['browser', 'preload', 'renderer', 'common']) {
       await fs.promises.mkdir(path.resolve(parent, dir), {
         recursive: true,
       });
@@ -68,12 +68,20 @@ export async function generateWiring(opts: WiringOptions) {
   for (const schema of flatSchemas) {
     const wiring = buildWiring(schema);
 
-    await fs.promises.writeFile(path.resolve(opts.wiringFolder, 'browser', `${schema.name}.ts`), wiring.browser.external);
-    await fs.promises.writeFile(path.resolve(opts.wiringFolder, 'renderer', `${schema.name}.ts`), wiring.renderer.external);
-    await fs.promises.writeFile(path.resolve(opts.wiringFolder, 'common', `${schema.name}.ts`), wiring.common.external);
+    await fs.promises.writeFile(path.resolve(opts.wiringFolder, 'browser', `${schema.name}.ts`), disableEslint(wiring.browser.external));
+    await fs.promises.writeFile(path.resolve(opts.wiringFolder, 'preload', `${schema.name}.ts`), disableEslint(wiring.preload.external));
+    await fs.promises.writeFile(path.resolve(opts.wiringFolder, 'renderer', `${schema.name}.ts`), disableEslint(wiring.renderer.external));
+    await fs.promises.writeFile(path.resolve(opts.wiringFolder, 'common', `${schema.name}.ts`), disableEslint(wiring.common.external));
 
-    await fs.promises.writeFile(path.resolve(opts.wiringFolder, '_internal', 'browser', `${schema.name}.ts`), wiring.browser.internal);
-    await fs.promises.writeFile(path.resolve(opts.wiringFolder, '_internal', 'renderer', `${schema.name}.ts`), wiring.renderer.internal);
-    await fs.promises.writeFile(path.resolve(opts.wiringFolder, '_internal', 'common', `${schema.name}.ts`), wiring.common.internal);
+    await fs.promises.writeFile(path.resolve(opts.wiringFolder, '_internal', 'browser', `${schema.name}.ts`), disableEslint(wiring.browser.internal));
+    await fs.promises.writeFile(path.resolve(opts.wiringFolder, '_internal', 'preload', `${schema.name}.ts`), disableEslint(wiring.preload.internal));
+    await fs.promises.writeFile(path.resolve(opts.wiringFolder, '_internal', 'renderer', `${schema.name}.ts`), disableEslint(wiring.renderer.internal));
+    await fs.promises.writeFile(path.resolve(opts.wiringFolder, '_internal', 'common', `${schema.name}.ts`), disableEslint(wiring.common.internal));
   }
+}
+
+function disableEslint(content: string): string {
+  return `/* eslint-disable */
+
+${content}`;
 }

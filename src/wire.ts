@@ -14,13 +14,14 @@ type SplitWiring = {
 
 type Wiring = {
   browser: SplitWiring;
+  preload: SplitWiring;
   renderer: SplitWiring;
   common: SplitWiring;
 };
 
 export function buildWiring(schema: Schema): Wiring {
   let browser = `import { ipcMain } from 'electron';\nexport * from '../common/${schema.name}';\n`;
-  let renderer = `import { contextBridge, ipcRenderer } from 'electron';\nexport * from '../common/${schema.name}';\n`;
+  let preload = `import { contextBridge, ipcRenderer } from 'electron';\nexport * from '../common/${schema.name}';\n`;
   let common = '';
 
   const buildExternal = (type: string, exports: string[]) => {
@@ -42,9 +43,10 @@ export function buildWiring(schema: Schema): Wiring {
 
   const publicBrowserExports: string[] = [];
   const publicCommonExports: string[] = [];
-  const publicRendererExports: string[] = [];
+  const publicPreloadExports: string[] = [];
   const commonExports: string[] = [];
   const rendererBridgeInitializers: string[] = [];
+  const rendererBridges: [string, string, string][] = [];
 
   const controller: Controller = {
     addPublicBrowserExport: (name: string) => {
@@ -52,12 +54,15 @@ export function buildWiring(schema: Schema): Wiring {
       publicBrowserExports.push(name);
     },
     addPublicCommonExport: (name: string) => {
-      exportDupeCheck(name, publicCommonExports, publicBrowserExports, publicRendererExports);
+      exportDupeCheck(name, publicCommonExports, publicBrowserExports, publicPreloadExports);
       publicCommonExports.push(name);
     },
-    addPublicRendererExport: (name: string) => {
-      exportDupeCheck(name, publicCommonExports, publicRendererExports);
-      publicRendererExports.push(name);
+    addPublicPreloadExport: (name: string) => {
+      exportDupeCheck(name, publicCommonExports, publicPreloadExports);
+      publicPreloadExports.push(name);
+    },
+    addPreloadBridgeKeyAndType(module, key, type) {
+      rendererBridges.push([module, key, type])
     },
     addCommonExport: (name: string) => {
       exportDupeCheck(name, commonExports);
@@ -69,10 +74,10 @@ export function buildWiring(schema: Schema): Wiring {
     addBrowserCode: (code: string) => {
       browser += code + '\n';
     },
-    addRendererCode: (code: string) => {
-      renderer += code + '\n';
+    addPreloadCode: (code: string) => {
+      preload += code + '\n';
     },
-    addRendererBridgeInitializer: (name: string) => {
+    addPreloadBridgeInitializer: (name: string) => {
       rendererBridgeInitializers.push(name);
     },
   };
@@ -173,25 +178,35 @@ export function buildWiring(schema: Schema): Wiring {
   const commonImportString = `import { ${commonExports.join(', ')} } from '../common/${schema.name}';\n`;
 
   if (rendererBridgeInitializers.length) {
-    renderer = `const bridged: Record<string, any> = {};\n` + renderer;
+    preload = `const bridged: Record<string, any> = {};\n` + preload;
   }
 
   browser = commonImportString + browser;
-  renderer = commonImportString + renderer;
+  preload = commonImportString + preload;
 
   if (rendererBridgeInitializers.length) {
-    renderer += `${rendererBridgeInitializers.map((init) => `${init}(bridged);`)}\n`;
-    renderer += `Object.keys(bridged).forEach(key => contextBridge.exposeInMainWorld(key, bridged[key]));\n`;
+    preload += `${rendererBridgeInitializers.map((init) => `${init}(bridged);`)}\n`;
+    preload += `Object.keys(bridged).forEach(key => contextBridge.exposeInMainWorld(key, bridged[key]));\n`;
   }
+
+  const renderer = rendererBridges.map(
+    ([moduleName, key, type]) => {
+      return `import { ${type} } from '../common/${moduleName}';\nexport const ${key} = (window as any)['${moduleName}']['${key}'] as ${type}`;
+    }
+  ).join('\n')
 
   return {
     browser: {
       internal: browser,
       external: buildExternal('browser', publicBrowserExports),
     },
+    preload: {
+      internal: preload,
+      external: buildExternal('preload', publicPreloadExports),
+    },
     renderer: {
-      internal: renderer,
-      external: buildExternal('renderer', publicRendererExports),
+      internal: '',
+      external: renderer,
     },
     common: {
       internal: common,

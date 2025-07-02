@@ -18,6 +18,10 @@ const variables: Record<string, { depends_on_url: true; type: VariableType } | {
     depends_on_url: true,
     type: 'String',
   },
+  href: {
+    depends_on_url: true,
+    type: 'String',
+  },
 };
 
 interface UrlDependency {
@@ -85,5 +89,5 @@ export function wireValidator(validator: Validator, controller: Controller): voi
   ];
 
   controller.addBrowserCode(browserEventValidator.join('\n'));
-  controller.addRendererCode(rendererExposeValidator.join('\n'));
+  controller.addPreloadCode(rendererExposeValidator.join('\n'));
 }
