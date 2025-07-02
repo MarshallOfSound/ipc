@@ -1,5 +1,5 @@
-import * as fs from 'fs-extra';
-import * as path from 'path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 
 import { getParser } from './parser';
 import { Schema } from './schema-type';
@@ -24,14 +24,14 @@ const IPC_SCHEMA_EXTENSION = '.eipc';
 export async function generateWiring(opts: WiringOptions) {
   const parser = await getParser();
 
-  const schemaFiles = (await fs.readdir(opts.schemaFolder)).filter((schemaFile) => path.extname(schemaFile) === IPC_SCHEMA_EXTENSION);
+  const schemaFiles = (await fs.promises.readdir(opts.schemaFolder)).filter((schemaFile) => path.extname(schemaFile) === IPC_SCHEMA_EXTENSION);
 
   // Read all schema files
   const schemas: Schema[] = await Promise.all(
     schemaFiles.map(async (schemaFile) => {
       const fullPath = path.resolve(opts.schemaFolder, schemaFile);
 
-      const contents = await fs.readFile(fullPath, 'utf8');
+      const contents = await fs.promises.readFile(fullPath, 'utf8');
       return parser.parse(contents);
     }),
   );
@@ -47,13 +47,19 @@ export async function generateWiring(opts: WiringOptions) {
   }
 
   // TODO: Validate existing wiringFolder contents
-  if (await fs.pathExists(opts.wiringFolder)) {
-    await fs.remove(opts.wiringFolder);
+  if (fs.existsSync(opts.wiringFolder)) {
+    await fs.promises.rm(opts.wiringFolder, {
+      recursive: true,
+    });
   }
-  await fs.mkdirp(opts.wiringFolder);
+  await fs.promises.mkdir(opts.wiringFolder, {
+    recursive: true,
+  });
   for (const parent of [opts.wiringFolder, path.resolve(opts.wiringFolder, '_internal')]) {
     for (const dir of ['browser', 'renderer', 'common']) {
-      await fs.mkdirp(path.resolve(parent, dir));
+      await fs.promises.mkdir(path.resolve(parent, dir), {
+        recursive: true,
+      });
     }
   }
 
@@ -62,12 +68,12 @@ export async function generateWiring(opts: WiringOptions) {
   for (const schema of flatSchemas) {
     const wiring = buildWiring(schema);
 
-    await fs.writeFile(path.resolve(opts.wiringFolder, 'browser', `${schema.name}.ts`), wiring.browser.external);
-    await fs.writeFile(path.resolve(opts.wiringFolder, 'renderer', `${schema.name}.ts`), wiring.renderer.external);
-    await fs.writeFile(path.resolve(opts.wiringFolder, 'common', `${schema.name}.ts`), wiring.common.external);
+    await fs.promises.writeFile(path.resolve(opts.wiringFolder, 'browser', `${schema.name}.ts`), wiring.browser.external);
+    await fs.promises.writeFile(path.resolve(opts.wiringFolder, 'renderer', `${schema.name}.ts`), wiring.renderer.external);
+    await fs.promises.writeFile(path.resolve(opts.wiringFolder, 'common', `${schema.name}.ts`), wiring.common.external);
 
-    await fs.writeFile(path.resolve(opts.wiringFolder, '_internal', 'browser', `${schema.name}.ts`), wiring.browser.internal);
-    await fs.writeFile(path.resolve(opts.wiringFolder, '_internal', 'renderer', `${schema.name}.ts`), wiring.renderer.internal);
-    await fs.writeFile(path.resolve(opts.wiringFolder, '_internal', 'common', `${schema.name}.ts`), wiring.common.internal);
+    await fs.promises.writeFile(path.resolve(opts.wiringFolder, '_internal', 'browser', `${schema.name}.ts`), wiring.browser.internal);
+    await fs.promises.writeFile(path.resolve(opts.wiringFolder, '_internal', 'renderer', `${schema.name}.ts`), wiring.renderer.internal);
+    await fs.promises.writeFile(path.resolve(opts.wiringFolder, '_internal', 'common', `${schema.name}.ts`), wiring.common.internal);
   }
 }

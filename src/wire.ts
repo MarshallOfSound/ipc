@@ -130,7 +130,7 @@ export function buildWiring(schema: Schema): Wiring {
             if (!allowedTypes.has(method.returns)) {
               throw new Error(`Interface "${bodyElem.name}" has an unrecognized return type for method "${method.name}" of "${method.returns}"`);
             }
-            if (new Set(method.arguments.map(arg => arg.name)).size !== method.arguments.length) {
+            if (new Set(method.arguments.map((arg) => arg.name)).size !== method.arguments.length) {
               throw new Error(`Interface "${bodyElem.name}" has duplicate argument names for method "${method.name}"`);
             }
             for (const arg of method.arguments) {
@@ -180,8 +180,8 @@ export function buildWiring(schema: Schema): Wiring {
   renderer = commonImportString + renderer;
 
   if (rendererBridgeInitializers.length) {
-    renderer += `${rendererBridgeInitializers.map(init => `${init}(bridged);`)}\n`;
-    renderer += `Object.keys(bridged).forEach(key => contextBridge.exposeInMainWorld(key, bridged[key]));\n`
+    renderer += `${rendererBridgeInitializers.map((init) => `${init}(bridged);`)}\n`;
+    renderer += `Object.keys(bridged).forEach(key => contextBridge.exposeInMainWorld(key, bridged[key]));\n`;
   }
 
   return {

@@ -6,7 +6,7 @@ type VariableType = 'Boolean' | 'String';
 const variables: Record<string, { depends_on_url: true; type: VariableType } | { depends_on_url: false; browser: string; renderer: string; type: VariableType }> = {
   is_main_frame: {
     depends_on_url: false,
-    browser: 'event.senderFrame.parent === null',
+    browser: 'event.senderFrame?.parent === null',
     renderer: 'window.top === window',
     type: 'Boolean',
   },
@@ -17,8 +17,8 @@ const variables: Record<string, { depends_on_url: true; type: VariableType } | {
   origin: {
     depends_on_url: true,
     type: 'String',
-  }
-}
+  },
+};
 
 interface UrlDependency {
   depends: boolean;
@@ -27,10 +27,10 @@ interface UrlDependency {
 function buildGrammar(grammar: ValidatorGrammar, process: 'browser' | 'renderer', dep: UrlDependency): string {
   switch (grammar.operation) {
     case 'And': {
-      return `(${grammar.conditions.map((condition) => buildCondition(condition, process, dep)).join(' && ')})`
+      return `(${grammar.conditions.map((condition) => buildCondition(condition, process, dep)).join(' && ')})`;
     }
     case 'Or': {
-      return `(${grammar.conditions.map((condition) => buildCondition(condition, process, dep)).join(' || ')})`
+      return `(${grammar.conditions.map((condition) => buildCondition(condition, process, dep)).join(' || ')})`;
     }
   }
 }
@@ -68,10 +68,10 @@ export function wireValidator(validator: Validator, controller: Controller): voi
   const browserCondition = buildGrammar(validator.grammar, 'browser', dependsOnUrl);
   const browserEventValidator = [
     `function ${eventValidator(validator.name)}(event: Electron.IpcMainEvent | Electron.IpcMainInvokeEvent) {`,
-    ...(dependsOnUrl.depends ? ['  const url = new URL(event.senderFrame.url);'] : []),
+    ...(dependsOnUrl.depends ? ['  if (!event.senderFrame) return false;', '  const url = new URL(event.senderFrame.url);'] : []),
     `  if (${browserCondition}) return true;`,
     '  return false;',
-    '}'
+    '}',
   ];
 
   dependsOnUrl.depends = false;
@@ -81,8 +81,8 @@ export function wireValidator(validator: Validator, controller: Controller): voi
     ...(dependsOnUrl.depends ? ['  const url = new URL(window.location.href);'] : []),
     `  if (${rendererCondition}) return true;`,
     '  return false;',
-    '}'
-  ]
+    '}',
+  ];
 
   controller.addBrowserCode(browserEventValidator.join('\n'));
   controller.addRendererCode(rendererExposeValidator.join('\n'));

@@ -109,7 +109,7 @@ export function wireInterface(int: Interface, controller: Controller, schema: Sc
             .join(', ')}) => {`,
           implProvidedCheck,
           `  if (!(${intInfo.validators.map((v) => `(${eventValidator(v)}(event))`).join(' && ')})) {`,
-          `    throw new Error(\`Incoming "${method.name}" call on interface "${int.name}" from \'$\{event.senderFrame.url}\' did not pass origin validation\`);`,
+          `    throw new Error(\`Incoming "${method.name}" call on interface "${int.name}" from \'$\{event.senderFrame?.url}\' did not pass origin validation\`);`,
           '  }',
           ...method.arguments.map(
             (arg, index) =>
@@ -157,13 +157,15 @@ export function wireInterface(int: Interface, controller: Controller, schema: Sc
         ].join('\n');
       }),
       '}',
-      ...(intInfo.autoContextBridge ? [
-        `const ${initializerName} = (localBridged: Record<string, any>) => {`,
-        `  if (!(${intInfo.validators.map((v) => `(${eventValidator(v)}())`).join(' && ')})) return;`,
-        `  localBridged['${schema.name}'] = localBridged['${schema.name}'] || {};`,
-        `  localBridged['${schema.name}']['${int.name}'] = ${int.name}`,
-        '};'
-      ] : [])
+      ...(intInfo.autoContextBridge
+        ? [
+            `const ${initializerName} = (localBridged: Record<string, any>) => {`,
+            `  if (!(${intInfo.validators.map((v) => `(${eventValidator(v)}())`).join(' && ')})) return;`,
+            `  localBridged['${schema.name}'] = localBridged['${schema.name}'] || {};`,
+            `  localBridged['${schema.name}']['${int.name}'] = ${int.name}`,
+            '};',
+          ]
+        : []),
     ];
 
     if (intInfo.autoContextBridge) {
