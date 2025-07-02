@@ -1,4 +1,4 @@
-# @electron/ipc
+# @marshallofsound/ipc
 
 > Experimental IPC module for Electron, provides type safe, validated and
 > secure IPC messaging with zero boilerplate
@@ -42,7 +42,7 @@ going forward.
 
 ## How does it work?
 
-`@electron/ipc` takes a set of `.eipc` schema files and generates a collection of
+`@marshallofsound/ipc` takes a set of `.eipc` schema files and generates a collection of
 typescript files for you to use in your project.  This means that your build system
 needs to support Typescript.
 
@@ -149,7 +149,7 @@ of the supported syntax.
 ## API
 
 ```js
-import { generateWiring } from '@electron/ipc';
+import { generateWiring } from '@marshallofsound/ipc';
 
 generateWiring({
     // Absolute path to a folder containing valid ".eipc" schema files
