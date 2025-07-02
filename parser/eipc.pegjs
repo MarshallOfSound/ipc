@@ -224,17 +224,22 @@ ArgumentsSpread "arguments"
   }
   
 Argument "argument"
-  = name:IdentifierName': 'type:IdentifierName {
+  = name:IdentifierName': 'type:IdentifierName nullable:'?'? {
     return {
       type: 'Argument',
       name: name.name,
       argType: type.name,
+      nullable: !!nullable
     }
   }
   
 ReturnType "return_type"
-  = ' -> '?returns:IdentifierName? {
-    return returns ? returns.name : null
+  = ' -> '?returns:IdentifierName? nullable:'?'? {
+    if (!returns) return null;
+    return {
+      type: returns.name,
+      nullable: !!nullable
+    }
   }
 
 newline = '\n' / '\r' '\n'?

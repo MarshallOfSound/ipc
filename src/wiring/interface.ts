@@ -11,9 +11,12 @@ type MethodTagInfo = {
   synchronous: boolean;
 };
 
-const validatorFnOrPrimitiveValidator = (type: string, argName: string) => {
-  if (basePrimitives.includes(type)) return `(typeof ${argName} === '${type}')`;
-  return `${validator(type)}(${argName})`;
+const validatorFnOrPrimitiveValidator = (type: string, argName: string, nullable: boolean) => {
+  const baseCheck = basePrimitives.includes(type) ? `(typeof ${argName} === '${type}')` : `${validator(type)}(${argName})`;
+  if (nullable) {
+    return `(${argName} === null || (${baseCheck}))`;
+  }
+  return baseCheck;
 };
 
 function methodTagInfo(method: InterfaceMethod) {
@@ -72,7 +75,7 @@ function interfaceTagInfo(int: Interface) {
 }
 
 function methodReturn(method: InterfaceMethod, syncMeansNoPromise = false) {
-  const inner = method.returns === null ? 'void' : method.returns;
+  const inner = method.returns === null ? 'void' : `${method.returns.type}${method.returns.nullable ? ' | null' : ''}`;
   const info = methodTagInfo(method);
   if (syncMeansNoPromise && info.synchronous) {
     return inner;
@@ -100,7 +103,7 @@ export function wireInterface(int: Interface, controller: Controller, schema: Sc
           '  }',
           ...method.arguments.map(
             (arg, index) =>
-              `  if (!${validatorFnOrPrimitiveValidator(arg.argType, `arg_${arg.name}`)}) throw new Error('Argument "${arg.name}" at position ${index} to method "${
+              `  if (!${validatorFnOrPrimitiveValidator(arg.argType, `arg_${arg.name}`, arg.nullable)}) throw new Error('Argument "${arg.name}" at position ${index} to method "${
                 method.name
               }" in interface "${int.name}" failed to pass validation');`,
           ),
@@ -108,7 +111,7 @@ export function wireInterface(int: Interface, controller: Controller, schema: Sc
           ...(method.returns === null
             ? []
             : [
-                `  if (!${validatorFnOrPrimitiveValidator(method.returns, 'result')}) throw new Error('Result from method "${method.name}" in interface "${
+                `  if (!${validatorFnOrPrimitiveValidator(method.returns.type, 'result', method.returns.nullable)}) throw new Error('Result from method "${method.name}" in interface "${
                   int.name
                 }" failed to pass validation');`,
                 // TODO: Better error handling for the sync case (try/catch, { result, error } return value)

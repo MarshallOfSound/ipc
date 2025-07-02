@@ -62,7 +62,7 @@ export function buildWiring(schema: Schema): Wiring {
       publicPreloadExports.push(name);
     },
     addPreloadBridgeKeyAndType(module, key, type) {
-      rendererBridges.push([module, key, type])
+      rendererBridges.push([module, key, type]);
     },
     addCommonExport: (name: string) => {
       exportDupeCheck(name, commonExports);
@@ -132,7 +132,7 @@ export function buildWiring(schema: Schema): Wiring {
       case 'Interface': {
         for (const method of bodyElem.methods) {
           if (method.returns !== null) {
-            if (!allowedTypes.has(method.returns)) {
+            if (!allowedTypes.has(method.returns.type)) {
               throw new Error(`Interface "${bodyElem.name}" has an unrecognized return type for method "${method.name}" of "${method.returns}"`);
             }
             if (new Set(method.arguments.map((arg) => arg.name)).size !== method.arguments.length) {
@@ -189,11 +189,11 @@ export function buildWiring(schema: Schema): Wiring {
     preload += `Object.keys(bridged).forEach(key => contextBridge.exposeInMainWorld(key, bridged[key]));\n`;
   }
 
-  const renderer = rendererBridges.map(
-    ([moduleName, key, type]) => {
+  const renderer = rendererBridges
+    .map(([moduleName, key, type]) => {
       return `import { ${type} } from '../common/${moduleName}';\nexport const ${key} = (window as any)['${moduleName}']['${key}'] as ${type}`;
-    }
-  ).join('\n')
+    })
+    .join('\n');
 
   return {
     browser: {

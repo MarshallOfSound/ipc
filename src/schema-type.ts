@@ -106,13 +106,17 @@ export type InterfaceMethod = {
    * null implies the method waits for completion but will not send any return value
    * if one is provided it is dropped rather than being validated
    */
-  returns: string | null;
+  returns: {
+    type: string;
+    nullable: boolean;
+  } | null;
 };
 
 export type MethodArgument = {
   type: 'Argument';
   name: string;
   argType: string;
+  nullable: boolean;
 };
 /** End Interface */
 

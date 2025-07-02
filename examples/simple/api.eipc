@@ -33,14 +33,15 @@ structure ComputerStuff {
 [Validator=OnlyElectronJSDotOrg]
 [ContextBridge]
 interface ComputerInfo {
-    GetName(foo: ComputerPlatform) -> string
+    GetName(foo: ComputerPlatform) -> string?
     [Sync]
     GetNameSync() -> string
     GetStuff() -> ComputerStuff
+    GetOptionalNumber() -> number?
 }
 
 [BroadcastAPI]
 [Validator=OnlyElectronJSDotOrg]
 interface ComputerInfoObserver {
-    NameChanged(newName: string)
+    NameChanged(newName: string?, optionalId: number?)
 }

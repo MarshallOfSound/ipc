@@ -18,6 +18,9 @@ ComputerInfo.setImplementation({
                 enabled: true,
             }
         }
+    },
+    async GetOptionalNumber() {
+        return 42;
     }
 })
 
