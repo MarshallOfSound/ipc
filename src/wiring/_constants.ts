@@ -15,5 +15,5 @@ export const ipcMessage = (schema: Schema, int: Interface, method: InterfaceMeth
 export const validator = (symbolName: string) => `${VALIDATOR_PREFIX}${symbolName}`;
 export const eventValidator = (validatorName: string) => `${EVENT_VALIDATOR_PREFIX}${validatorName}`;
 
-export type BasePrimitive = 'string' | 'number' | 'boolean';
-export const basePrimitives = ['string', 'number', 'boolean'];
+export type BasePrimitive = 'string' | 'number' | 'boolean' | 'unknown';
+export const basePrimitives = ['string', 'number', 'boolean', 'unknown'];

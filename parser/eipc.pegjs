@@ -10,7 +10,7 @@ ModuleDeclaration "module"
   }
 
 ModuleBody "module_body"
-  = (Interface / Validator / Enum / Structure / SubType)*
+  = (Interface / Validator / Enum / Structure / SubType / ZodReference)*
 
 IdentifierName "identifier"
   = head:IdentifierStart tail:IdentifierPart* {
@@ -19,6 +19,17 @@ IdentifierName "identifier"
         name: head + tail.join("")
       };
     }
+
+IdentifierOrArrayOfIdentifier "array_or_identifier"
+  = head:IdentifierStart tail:IdentifierPart* arr:'[]'? {
+    return arr ? {
+      type: "Array",
+      name: head + tail.join(""),
+    } : {
+      type: "Identifier",
+      name: head + tail.join(""),
+    }
+  }
     
 ModuleName "module"
   = head:IdentifierStart tail:ModulePart* {
@@ -140,8 +151,17 @@ Structure "structure"
   = 'structure ' name:IdentifierName' ' block:StructureBlock newline* {
     return {
       type: 'Structure',
-	  name: name.name,
+      name: name.name,
       properties: block.properties,
+    }
+  }
+
+KeyValueBlock "key_value_block"
+  = '{' newline MaybeWhiteSpace 'string ->' MaybeWhiteSpace type:(IdentifierOrArrayOfIdentifier / StructureBlock / KeyValueBlock) newline* MaybeWhiteSpace'}' {
+    return {
+      type: 'KeyValueBlock',
+      key: 'string',
+      value: type,
     }
   }
   
@@ -154,11 +174,23 @@ StructureBlock "structure_block"
   }
   
 StructureProperty "structure_property"
-  = MaybeWhiteSpace prop:IdentifierName q:[?]?':'MaybeWhiteSpace type:(IdentifierName / StructureBlock) newline* {
+  = MaybeWhiteSpace prop:IdentifierName q:[?]?':'MaybeWhiteSpace type:(IdentifierOrArrayOfIdentifier / StructureBlock / KeyValueBlock) nullable:'?'? newline* {
     return {
       key: prop.name,
-      value: type.type === 'Identifier' ? type.name : type,
+      value: type,
       optional: !!q,
+      nullable: !!nullable,
+    }
+  }
+
+ZodReference "zod_reference"
+  = 'zod_reference 'name:IdentifierName' {'newline MaybeWhiteSpace 'import = ' file:StringLiteral newline MaybeWhiteSpace 'type = 'type:StringLiteral newline MaybeWhiteSpace 'schema = 'schema:StringLiteral newline MaybeWhiteSpace '}'newline* {
+    return {
+      type: 'ZodReference',
+      name: name.name,
+      file: file,
+      typeName: type,
+      schemaName: schema
     }
   }
   
@@ -224,20 +256,20 @@ ArgumentsSpread "arguments"
   }
   
 Argument "argument"
-  = name:IdentifierName': 'type:IdentifierName nullable:'?'? {
+  = name:IdentifierName': ' type:IdentifierOrArrayOfIdentifier nullable:'?'? {
     return {
       type: 'Argument',
       name: name.name,
-      argType: type.name,
-      nullable: !!nullable
+      argType: type,
+      nullable: !!nullable,
     }
   }
   
 ReturnType "return_type"
-  = ' -> '?returns:IdentifierName? nullable:'?'? {
+  = ' -> '?returns:IdentifierOrArrayOfIdentifier? nullable:'?'? {
     if (!returns) return null;
     return {
-      type: returns.name,
+      type: returns,
       nullable: !!nullable
     }
   }

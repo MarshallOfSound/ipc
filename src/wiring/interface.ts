@@ -1,6 +1,7 @@
 import { Controller } from '../controller';
-import { Interface, InterfaceMethod, MethodArgument, Schema } from '../schema-type';
+import { Array, Identifier, IdentifierIDX, Interface, InterfaceMethod, MethodArgument, Schema, Structure } from '../schema-type';
 import { basePrimitives, eventValidator, INTERFACE_IMPL_PREFIX, ipcMessage, validator } from './_constants';
+import { getTSForIdentifier } from './identifier';
 
 enum InterfaceType {
   RendererAPI,
@@ -12,8 +13,18 @@ type MethodTagInfo = {
   event: boolean;
 };
 
-const validatorFnOrPrimitiveValidator = (type: string, argName: string, nullable: boolean) => {
-  const baseCheck = basePrimitives.includes(type) ? `(typeof ${argName} === '${type}')` : `${validator(type)}(${argName})`;
+const validatorFnOrPrimitiveValidator = (type: Identifier | IdentifierIDX | Array | MethodArgument, argName: string, nullable: boolean) => {
+  if (type.type === 'Argument') {
+    return validatorFnOrPrimitiveValidator(type.argType, argName, nullable);
+  }
+  const baseType = type.name;
+  let baseCheck = basePrimitives.includes(baseType) ? `(typeof ${argName} === '${baseType}')` : `${validator(baseType)}(${argName})`;
+  if (baseType === 'unknown') {
+    baseCheck = 'true';
+  }
+  if (type.type === 'Array') {
+    baseCheck = `(Array.isArray(${argName}) && ${argName}.every(${argName} => ${baseCheck}))`;
+  }
   if (nullable) {
     return `(${argName} === null || (${baseCheck}))`;
   }
@@ -87,11 +98,15 @@ function upFirst(s: string) {
   return s[0].toUpperCase() + s.slice(1);
 }
 
-function methodReturn(method: InterfaceMethod, syncMeansNoPromise = false) {
-  const inner = method.returns === null ? 'void' : `${method.returns.type}${method.returns.nullable ? ' | null' : ''}`;
+function methodReturn(method: InterfaceMethod, rendererSide = false) {
+  const innerBase = method.returns ? getTSForIdentifier(method.returns.type) : null;
+  const inner = method.returns === null ? 'void' : `${innerBase}${method.returns.nullable ? ' | null' : ''}`;
   const info = methodTagInfo(method);
-  if (syncMeansNoPromise && info.synchronous) {
+  if (rendererSide && info.synchronous) {
     return inner;
+  }
+  if (rendererSide) {
+    return `Promise<${inner}>`;
   }
   return `Promise<${inner}> | ${inner}`;
 }
@@ -102,7 +117,11 @@ export function wireInterface(int: Interface, controller: Controller, schema: Sc
   if (intInfo.interfaceType === InterfaceType.RendererAPI) {
     const initializerName = `${INTERFACE_IMPL_PREFIX}_init_${int.name}`;
     const interfaceImplementation = [
+      `const ${int.name}_dispatchers = new WeakMap<Electron.WebContents | Electron.WebFrameMain, ReturnType<ReturnType<typeof ${int.name}['for']>['setImplementation']>>()`,
       `export const ${int.name} = {`,
+      `  getDispatcher(target: Electron.WebContents | Electron.WebFrameMain) {`,
+      `    return ${int.name}_dispatchers.get(target);`,
+      `  },`,
       `  for(target: Electron.WebContents | Electron.WebFrameMain) {`,
       `    return {`,
       `      setImplementation: (impl: I${int.name}Impl) => {`,
@@ -113,14 +132,14 @@ export function wireInterface(int: Interface, controller: Controller, schema: Sc
           return [
             `        target.ipc.${tags.synchronous ? 'removeAllListeners' : 'removeHandler'}('${ipcMessage(schema, int, method)}');`,
             `target.ipc.${tags.synchronous ? 'on' : 'handle'}('${ipcMessage(schema, int, method)}', async (event${method.arguments.length ? ', ' : ''}${method.arguments
-              .map((arg) => `arg_${arg.name}: ${arg.argType}`)
+              .map((arg) => `arg_${arg.name}: ${getTSForIdentifier(arg)}`)
               .join(', ')}) => {`,
             `  if (!(${intInfo.validators.map((v) => `(${eventValidator(v)}(event))`).join(' && ')})) {`,
             `    throw new Error(\`Incoming "${method.name}" call on interface "${int.name}" from \'$\{event.senderFrame?.url}\' did not pass origin validation\`);`,
             '  }',
             ...method.arguments.map(
               (arg, index) =>
-                `  if (!${validatorFnOrPrimitiveValidator(arg.argType, `arg_${arg.name}`, arg.nullable)}) throw new Error('Argument "${arg.name}" at position ${index} to method "${
+                `  if (!${validatorFnOrPrimitiveValidator(arg, `arg_${arg.name}`, arg.nullable)}) throw new Error('Argument "${arg.name}" at position ${index} to method "${
                   method.name
                 }" in interface "${int.name}" failed to pass validation');`,
             ),
@@ -137,25 +156,27 @@ export function wireInterface(int: Interface, controller: Controller, schema: Sc
             `});`,
           ].join('\n        ');
         }),
-      `        return {`,
+      `        const dis = {`,
       ...int.methods
         .filter((m) => methodTagInfo(m).event)
         .map((event) =>
           [
-            `dispatch${upFirst(event.name)}(${event.arguments.map((arg) => `${arg.name}: ${arg.argType}${arg.nullable ? ' | null' : ''}`).join(', ')}): void {`,
+            `dispatch${upFirst(event.name)}(${event.arguments.map((arg) => `arg_${arg.name}: ${getTSForIdentifier(arg)}${arg.nullable ? ' | null' : ''}`).join(', ')}): void {`,
             ...event.arguments.map(
               (arg, index) =>
-                `  if (!${validatorFnOrPrimitiveValidator(arg.argType, arg.name, arg.nullable)}) throw new Error('Argument "${arg.name}" at position ${index} to event "${
+                `  if (!${validatorFnOrPrimitiveValidator(arg, `arg_${arg.name}`, arg.nullable)}) throw new Error('Argument "${arg.name}" at position ${index} to event "${
                   event.name
                 }" in interface "${int.name}" failed to pass validation');`,
             ),
-            `  target.send('${ipcMessage(schema, int, event)}'${event.arguments.length > 0 ? ', ' : ''}${event.arguments.map((arg) => arg.name).join(', ')})`,
-            '}',
+            `  target.send('${ipcMessage(schema, int, event)}'${event.arguments.length > 0 ? ', ' : ''}${event.arguments.map((arg) => `arg_${arg.name}`).join(', ')})`,
+            '},',
           ]
             .map((s) => `          ${s}`)
             .join('\n'),
         ),
-      `        }`,
+      `        };`,
+      `        ${int.name}_dispatchers.set(target, dis)`,
+      `        return dis;`,
       '      }',
       `    };`,
       `  }`,
@@ -166,20 +187,23 @@ export function wireInterface(int: Interface, controller: Controller, schema: Sc
       `export interface I${int.name}Impl {`,
       ...int.methods
         .filter((m) => !methodTagInfo(m).event)
-        .map((method) => `  ${method.name}(${method.arguments.map((arg) => `${arg.name}: ${arg.argType}${arg.nullable ? ' | null' : ''}`).join(', ')}): ${methodReturn(method)};`),
+        .map(
+          (method) =>
+            `  ${method.name}(${method.arguments.map((arg) => `${arg.name}: ${getTSForIdentifier(arg)}${arg.nullable ? ' | null' : ''}`).join(', ')}): ${methodReturn(method)};`,
+        ),
       '}',
       `export interface I${int.name}Renderer {`,
       ...int.methods
         .filter((m) => !methodTagInfo(m).event)
         .map(
           (method) =>
-            `  ${method.name}(${method.arguments.map((arg) => `${arg.name}: ${arg.argType}${arg.nullable ? ' | null' : ''}`).join(', ')}): ${methodReturn(method, true)};`,
+            `  ${method.name}(${method.arguments.map((arg) => `${arg.name}: ${getTSForIdentifier(arg)}${arg.nullable ? ' | null' : ''}`).join(', ')}): ${methodReturn(method, true)};`,
         ),
       ...int.methods
         .filter((m) => methodTagInfo(m).event)
         .map(
           (method) =>
-            `  on${upFirst(method.name)}(fn: (${method.arguments.map((arg) => `${arg.name}: ${arg.argType}${arg.nullable ? ' | null' : ''}`).join(', ')}) => void): void;`,
+            `  on${upFirst(method.name)}(fn: (${method.arguments.map((arg) => `${arg.name}: ${getTSForIdentifier(arg)}${arg.nullable ? ' | null' : ''}`).join(', ')}) => void): () => void;`,
         ),
       '}',
     ];
@@ -188,14 +212,14 @@ export function wireInterface(int: Interface, controller: Controller, schema: Sc
       `export const ${int.name}: I${int.name}Renderer = {`,
       ...int.methods.map((method) => {
         const info = methodTagInfo(method);
-        const argsString = method.arguments.map((arg) => `${arg.name}: ${arg.argType}${arg.nullable ? ' | null' : ''}`).join(', ');
+        const argsString = method.arguments.map((arg) => `${arg.name}: ${getTSForIdentifier(arg)}${arg.nullable ? ' | null' : ''}`).join(', ');
 
         if (info.event) {
           return [
             `  on${upFirst(method.name)}(fn: (${argsString}) => void) {`,
             `    const handler = (e: unknown, ${argsString}) => fn(${method.arguments.map((arg) => arg.name).join(', ')});`,
             `    ipcRenderer.on('${ipcMessage(schema, int, method)}', handler)`,
-            `    return ipcRenderer.removeListener('${ipcMessage(schema, int, method)}', handler)`,
+            `    return () => { ipcRenderer.removeListener('${ipcMessage(schema, int, method)}', handler); };`,
             `  },`,
           ].join('\n');
         }

@@ -12,8 +12,8 @@ export function wireEnum(enumBlock: Enum, controller: Controller): void {
     `}`,
   ];
   controller.addCommonCode(enumDeclaration.join('\n'));
-  controller.addCommonCode(enumValidatorDeclaration.join('\n'));
+  controller.addCommonRuntimeCode(enumValidatorDeclaration.join('\n'));
   controller.addCommonExport(enumBlock.name);
-  controller.addCommonExport(validator(enumBlock.name));
+  controller.addCommonRuntimeExport(validator(enumBlock.name));
   controller.addPublicCommonExport(enumBlock.name);
 }

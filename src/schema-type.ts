@@ -1,8 +1,18 @@
 export type Schema = {
   type: 'Module';
   name: string;
-  body: (Validator | SubType | Enum | Structure | Interface)[];
+  body: (Validator | SubType | Enum | Structure | Interface | ZodReference)[];
 };
+
+/** Begin Zod Reference */
+export type ZodReference = {
+  type: 'ZodReference';
+  name: string;
+  file: StringValue;
+  typeName: StringValue;
+  schemaName: StringValue;
+}
+/** End Zod Reference */
 
 /** Begin Validator */
 export type Validator = {
@@ -71,10 +81,33 @@ export type Structure = {
   properties: StructureProperty[];
 };
 
+export type KeyValueMap = {
+  type: 'KeyValueBlock';
+  key: 'string';
+  value: Identifier | Array | IdentifierIDX | InlineStructure | KeyValueMap;
+}
+
+export type Identifier = {
+  type: 'Identifier';
+  name: string;
+}
+
+export type IdentifierIDX = {
+  type: 'IdentifierIDX',
+  name: string;
+  idxKey: Identifier;
+}
+
+export type Array = {
+  type: 'Array',
+  name: string;
+}
+
 export type StructureProperty = {
   key: string;
-  value: string | InlineStructure;
+  value: Identifier | Array | IdentifierIDX | InlineStructure | KeyValueMap;
   optional: boolean;
+  nullable: boolean;
 };
 
 export type InlineStructure = {
@@ -107,7 +140,7 @@ export type InterfaceMethod = {
    * if one is provided it is dropped rather than being validated
    */
   returns: {
-    type: string;
+    type: Identifier | Array | IdentifierIDX;
     nullable: boolean;
   } | null;
 };
@@ -115,7 +148,7 @@ export type InterfaceMethod = {
 export type MethodArgument = {
   type: 'Argument';
   name: string;
-  argType: string;
+  argType: Identifier | Array | IdentifierIDX;
   nullable: boolean;
 };
 /** End Interface */

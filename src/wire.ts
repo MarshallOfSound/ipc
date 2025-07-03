@@ -6,6 +6,7 @@ import { wireStructure } from './wiring/structure';
 import { wireSubType } from './wiring/subtype';
 import { wireValidator } from './wiring/validator';
 import { basePrimitives } from './wiring/_constants';
+import { wireZod } from './wiring/zod';
 
 type SplitWiring = {
   internal: string;
@@ -17,12 +18,14 @@ type Wiring = {
   preload: SplitWiring;
   renderer: SplitWiring;
   common: SplitWiring;
+  commonRuntime: SplitWiring;
 };
 
 export function buildWiring(schema: Schema): Wiring {
-  let browser = `import { ipcMain } from 'electron';\nexport * from '../common/${schema.name}';\n`;
+  let browser = `import { app as $$app$$ } from 'electron';\nexport * from '../common/${schema.name}';\n`;
   let preload = `import { contextBridge, ipcRenderer } from 'electron';\nexport * from '../common/${schema.name}';\n`;
   let common = '';
+  let commonRuntime = '';
 
   const buildExternal = (type: string, exports: string[]) => {
     return [
@@ -45,6 +48,7 @@ export function buildWiring(schema: Schema): Wiring {
   const publicCommonExports: string[] = [];
   const publicPreloadExports: string[] = [];
   const commonExports: string[] = [];
+  const commonRuntimeExports: string[] = [];
   const rendererBridgeInitializers: string[] = [];
   const rendererBridges: [string, string, string][] = [];
 
@@ -70,6 +74,13 @@ export function buildWiring(schema: Schema): Wiring {
     },
     addCommonCode: (code: string) => {
       common += code + '\n';
+    },
+    addCommonRuntimeCode: (code: string) => {
+      commonRuntime += code + '\n';
+    },
+    addCommonRuntimeExport: (name: string) => {
+      exportDupeCheck(name, commonRuntimeExports);
+      commonRuntimeExports.push(name);
     },
     addBrowserCode: (code: string) => {
       browser += code + '\n';
@@ -117,12 +128,14 @@ export function buildWiring(schema: Schema): Wiring {
       case 'Structure': {
         const validateProperties = (props: StructureProperty[], context = '') => {
           for (const prop of props) {
-            if (typeof prop.value === 'string') {
-              if (!allowedTypes.has(prop.value)) {
+            if (prop.value.type === 'Identifier' || prop.value.type === 'Array' || prop.value.type === 'IdentifierIDX') {
+              if (!allowedTypes.has(prop.value.name)) {
                 throw new Error(`Structure "${bodyElem.name}" has an unrecognized type for property "${context}${prop.key}" of "${prop.value}"`);
               }
-            } else {
+            } else if (prop.value.type === 'InlineStructure') {
               validateProperties(prop.value.properties, `${prop.key} -> `);
+            } else {
+              // validateKVM
             }
           }
         };
@@ -132,16 +145,18 @@ export function buildWiring(schema: Schema): Wiring {
       case 'Interface': {
         for (const method of bodyElem.methods) {
           if (method.returns !== null) {
-            if (!allowedTypes.has(method.returns.type)) {
+            const returnTypeBase = method.returns.type.name;
+            if (!allowedTypes.has(returnTypeBase)) {
               throw new Error(`Interface "${bodyElem.name}" has an unrecognized return type for method "${method.name}" of "${method.returns}"`);
             }
-            if (new Set(method.arguments.map((arg) => arg.name)).size !== method.arguments.length) {
-              throw new Error(`Interface "${bodyElem.name}" has duplicate argument names for method "${method.name}"`);
-            }
-            for (const arg of method.arguments) {
-              if (!allowedTypes.has(arg.argType)) {
-                throw new Error(`Interface "${bodyElem.name}" has an unrecognized argument type for method "${method.name}" at argument "${arg.name}" of "${arg.argType}"`);
-              }
+          }
+          if (new Set(method.arguments.map((arg) => arg.name)).size !== method.arguments.length) {
+            throw new Error(`Interface "${bodyElem.name}" has duplicate argument names for method "${method.name}"`);
+          }
+          for (const arg of method.arguments) {
+            const argTypeBase = arg.argType.name;
+            if (!allowedTypes.has(argTypeBase)) {
+              throw new Error(`Interface "${bodyElem.name}" has an unrecognized argument type for method "${method.name}" at argument "${arg.name}" of "${arg.argType.name}"`);
             }
           }
         }
@@ -172,16 +187,21 @@ export function buildWiring(schema: Schema): Wiring {
         wireInterface(bodyElem, controller, schema);
         break;
       }
+      case 'ZodReference': {
+        wireZod(bodyElem, controller);
+        break;
+      }
     }
   }
 
   const commonImportString = `import { ${commonExports.join(', ')} } from '../common/${schema.name}';\n`;
+  const commonRuntimeImportString = `import { ${commonRuntimeExports.join(', ')} } from '../common-runtime/${schema.name}';\n`;
 
   if (rendererBridgeInitializers.length) {
     preload = `const bridged: Record<string, any> = {};\n` + preload;
   }
 
-  browser = commonImportString + browser;
+  browser = commonRuntimeImportString + commonImportString + browser;
   preload = commonImportString + preload;
 
   if (rendererBridgeInitializers.length) {
@@ -211,6 +231,10 @@ export function buildWiring(schema: Schema): Wiring {
     common: {
       internal: common,
       external: buildExternal('common', publicCommonExports),
+    },
+    commonRuntime: {
+      internal: commonRuntime || 'export { }',
+      external: '',
     },
   };
 }

@@ -3,12 +3,18 @@ import { Validator, ValidatorGrammar, ValidatorNestedCondition } from '../schema
 import { eventValidator } from './_constants';
 
 type VariableType = 'Boolean' | 'String';
-const variables: Record<string, { depends_on_url: true; type: VariableType } | { depends_on_url: false; browser: string; renderer: string; type: VariableType }> = {
+const variables: Record<string, { depends_on_url: true; type: VariableType } | { depends_on_url: false; browser: string; renderer: string | null; type: VariableType }> = {
   is_main_frame: {
     depends_on_url: false,
     browser: 'event.senderFrame?.parent === null',
     renderer: 'window.top === window',
     type: 'Boolean',
+  },
+  is_packaged: {
+    depends_on_url: false,
+    browser: '$$app$$.isPackaged',
+    renderer: null,
+    type: 'Boolean'
   },
   protocol: {
     depends_on_url: true,
@@ -19,6 +25,10 @@ const variables: Record<string, { depends_on_url: true; type: VariableType } | {
     type: 'String',
   },
   href: {
+    depends_on_url: true,
+    type: 'String',
+  },
+  hostname: {
     depends_on_url: true,
     type: 'String',
   },
@@ -60,6 +70,10 @@ function buildCondition(condition: ValidatorNestedCondition, process: 'browser' 
 
       if (info.type !== target.type) {
         throw new Error(`Variable "${subject}" of type "${info.type}" can not be compared against a literal of type "${target.type}"`);
+      }
+
+      if (!info.depends_on_url && info[process] === null) {
+        return `(true)`;
       }
 
       return `((${info.depends_on_url ? `url.${subject}` : info[process]}) === ${target.type === 'String' ? JSON.stringify(target.value) : target.value})`;

@@ -57,7 +57,7 @@ export function wireSubType(subType: SubType, controller: Controller, schema: Sc
   const subTypeDeclaration = [`export type ${subType.name} = ${subType.parent};`];
 
   const parentValidator = basePrimitives.includes(subType.parent)
-    ? [`if (typeof value !== '${subType.parent}') return false;`]
+    ? subType.parent === 'unknown' ? [] : [`if (typeof value !== '${subType.parent}') return false;`]
     : [`if (!${validator(subType.parent)}(value)) return false;`];
 
   let basePrimitive = subType.name;
@@ -84,8 +84,8 @@ export function wireSubType(subType: SubType, controller: Controller, schema: Sc
     `}`,
   ];
   controller.addCommonCode(subTypeDeclaration.join('\n'));
-  controller.addCommonCode(subTypeValidatorDeclaration.join('\n'));
+  controller.addCommonRuntimeCode(subTypeValidatorDeclaration.join('\n'));
   controller.addCommonExport(subType.name);
-  controller.addCommonExport(validator(subType.name));
+  controller.addCommonRuntimeExport(validator(subType.name));
   controller.addPublicCommonExport(subType.name);
 }

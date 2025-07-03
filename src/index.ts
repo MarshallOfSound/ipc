@@ -56,7 +56,7 @@ export async function generateWiring(opts: WiringOptions) {
     recursive: true,
   });
   for (const parent of [opts.wiringFolder, path.resolve(opts.wiringFolder, '_internal')]) {
-    for (const dir of ['browser', 'preload', 'renderer', 'common']) {
+    for (const dir of ['browser', 'preload', 'renderer', 'common', 'common-runtime']) {
       await fs.promises.mkdir(path.resolve(parent, dir), {
         recursive: true,
       });
@@ -72,11 +72,13 @@ export async function generateWiring(opts: WiringOptions) {
     await fs.promises.writeFile(path.resolve(opts.wiringFolder, 'preload', `${schema.name}.ts`), disableEslint(wiring.preload.external));
     await fs.promises.writeFile(path.resolve(opts.wiringFolder, 'renderer', `${schema.name}.ts`), disableEslint(wiring.renderer.external));
     await fs.promises.writeFile(path.resolve(opts.wiringFolder, 'common', `${schema.name}.ts`), disableEslint(wiring.common.external));
+    await fs.promises.writeFile(path.resolve(opts.wiringFolder, 'common-runtime', `${schema.name}.ts`), disableEslint(wiring.commonRuntime.external));
 
     await fs.promises.writeFile(path.resolve(opts.wiringFolder, '_internal', 'browser', `${schema.name}.ts`), disableEslint(wiring.browser.internal));
     await fs.promises.writeFile(path.resolve(opts.wiringFolder, '_internal', 'preload', `${schema.name}.ts`), disableEslint(wiring.preload.internal));
     await fs.promises.writeFile(path.resolve(opts.wiringFolder, '_internal', 'renderer', `${schema.name}.ts`), disableEslint(wiring.renderer.internal));
     await fs.promises.writeFile(path.resolve(opts.wiringFolder, '_internal', 'common', `${schema.name}.ts`), disableEslint(wiring.common.internal));
+    await fs.promises.writeFile(path.resolve(opts.wiringFolder, '_internal', 'common-runtime', `${schema.name}.ts`), disableEslint(wiring.commonRuntime.internal));
   }
 }
 
