@@ -150,6 +150,7 @@ export type MethodArgument = {
   name: string;
   argType: Identifier | Array | IdentifierIDX;
   nullable: boolean;
+  optional: boolean;
 };
 /** End Interface */
 

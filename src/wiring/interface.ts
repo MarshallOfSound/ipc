@@ -13,9 +13,9 @@ type MethodTagInfo = {
   event: boolean;
 };
 
-const validatorFnOrPrimitiveValidator = (type: Identifier | IdentifierIDX | Array | MethodArgument, argName: string, nullable: boolean) => {
+const validatorFnOrPrimitiveValidator = (type: Identifier | IdentifierIDX | Array | MethodArgument, argName: string, nullable: boolean, optional: boolean) => {
   if (type.type === 'Argument') {
-    return validatorFnOrPrimitiveValidator(type.argType, argName, nullable);
+    return validatorFnOrPrimitiveValidator(type.argType, argName, nullable, optional);
   }
   const baseType = type.name;
   let baseCheck = basePrimitives.includes(baseType) ? `(typeof ${argName} === '${baseType}')` : `${validator(baseType)}(${argName})`;
@@ -26,7 +26,10 @@ const validatorFnOrPrimitiveValidator = (type: Identifier | IdentifierIDX | Arra
     baseCheck = `(Array.isArray(${argName}) && ${argName}.every(${argName} => ${baseCheck}))`;
   }
   if (nullable) {
-    return `(${argName} === null || (${baseCheck}))`;
+    baseCheck = `(${argName} === null || (${baseCheck}))`;
+  }
+  if (optional) {
+    baseCheck = `(${argName} === undefined || (${baseCheck}))`;
   }
   return baseCheck;
 };
@@ -139,7 +142,7 @@ export function wireInterface(int: Interface, controller: Controller, schema: Sc
             '  }',
             ...method.arguments.map(
               (arg, index) =>
-                `  if (!${validatorFnOrPrimitiveValidator(arg, `arg_${arg.name}`, arg.nullable)}) throw new Error('Argument "${arg.name}" at position ${index} to method "${
+                `  if (!${validatorFnOrPrimitiveValidator(arg, `arg_${arg.name}`, arg.nullable, arg.optional)}) throw new Error('Argument "${arg.name}" at position ${index} to method "${
                   method.name
                 }" in interface "${int.name}" failed to pass validation');`,
             ),
@@ -147,7 +150,7 @@ export function wireInterface(int: Interface, controller: Controller, schema: Sc
             ...(method.returns === null
               ? []
               : [
-                  `  if (!${validatorFnOrPrimitiveValidator(method.returns.type, 'result', method.returns.nullable)}) throw new Error('Result from method "${method.name}" in interface "${
+                  `  if (!${validatorFnOrPrimitiveValidator(method.returns.type, 'result', method.returns.nullable, false)}) throw new Error('Result from method "${method.name}" in interface "${
                     int.name
                   }" failed to pass validation');`,
                   // TODO: Better error handling for the sync case (try/catch, { result, error } return value)
@@ -161,10 +164,10 @@ export function wireInterface(int: Interface, controller: Controller, schema: Sc
         .filter((m) => methodTagInfo(m).event)
         .map((event) =>
           [
-            `dispatch${upFirst(event.name)}(${event.arguments.map((arg) => `arg_${arg.name}: ${getTSForIdentifier(arg)}${arg.nullable ? ' | null' : ''}`).join(', ')}): void {`,
+            `dispatch${upFirst(event.name)}(${event.arguments.map((arg) => `arg_${arg.name}${arg.optional ? '?' :''}: ${getTSForIdentifier(arg)}${arg.nullable ? ' | null' : ''}`).join(', ')}): void {`,
             ...event.arguments.map(
               (arg, index) =>
-                `  if (!${validatorFnOrPrimitiveValidator(arg, `arg_${arg.name}`, arg.nullable)}) throw new Error('Argument "${arg.name}" at position ${index} to event "${
+                `  if (!${validatorFnOrPrimitiveValidator(arg, `arg_${arg.name}`, arg.nullable, arg.optional)}) throw new Error('Argument "${arg.name}" at position ${index} to event "${
                   event.name
                 }" in interface "${int.name}" failed to pass validation');`,
             ),
@@ -189,7 +192,7 @@ export function wireInterface(int: Interface, controller: Controller, schema: Sc
         .filter((m) => !methodTagInfo(m).event)
         .map(
           (method) =>
-            `  ${method.name}(${method.arguments.map((arg) => `${arg.name}: ${getTSForIdentifier(arg)}${arg.nullable ? ' | null' : ''}`).join(', ')}): ${methodReturn(method)};`,
+            `  ${method.name}(${method.arguments.map((arg) => `${arg.name}${arg.optional ? '?' :''}: ${getTSForIdentifier(arg)}${arg.nullable ? ' | null' : ''}`).join(', ')}): ${methodReturn(method)};`,
         ),
       '}',
       `export interface I${int.name}Renderer {`,
@@ -197,13 +200,13 @@ export function wireInterface(int: Interface, controller: Controller, schema: Sc
         .filter((m) => !methodTagInfo(m).event)
         .map(
           (method) =>
-            `  ${method.name}(${method.arguments.map((arg) => `${arg.name}: ${getTSForIdentifier(arg)}${arg.nullable ? ' | null' : ''}`).join(', ')}): ${methodReturn(method, true)};`,
+            `  ${method.name}(${method.arguments.map((arg) => `${arg.name}${arg.optional ? '?' :''}: ${getTSForIdentifier(arg)}${arg.nullable ? ' | null' : ''}`).join(', ')}): ${methodReturn(method, true)};`,
         ),
       ...int.methods
         .filter((m) => methodTagInfo(m).event)
         .map(
           (method) =>
-            `  on${upFirst(method.name)}(fn: (${method.arguments.map((arg) => `${arg.name}: ${getTSForIdentifier(arg)}${arg.nullable ? ' | null' : ''}`).join(', ')}) => void): () => void;`,
+            `  on${upFirst(method.name)}(fn: (${method.arguments.map((arg) => `${arg.name}${arg.optional ? '?' :''}: ${getTSForIdentifier(arg)}${arg.nullable ? ' | null' : ''}`).join(', ')}) => void): () => void;`,
         ),
       '}',
     ];
@@ -212,7 +215,7 @@ export function wireInterface(int: Interface, controller: Controller, schema: Sc
       `export const ${int.name}: I${int.name}Renderer = {`,
       ...int.methods.map((method) => {
         const info = methodTagInfo(method);
-        const argsString = method.arguments.map((arg) => `${arg.name}: ${getTSForIdentifier(arg)}${arg.nullable ? ' | null' : ''}`).join(', ');
+        const argsString = method.arguments.map((arg) => `${arg.name}${arg.optional ? '?' :''}: ${getTSForIdentifier(arg)}${arg.nullable ? ' | null' : ''}`).join(', ');
 
         if (info.event) {
           return [

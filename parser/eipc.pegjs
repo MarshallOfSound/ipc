@@ -256,12 +256,13 @@ ArgumentsSpread "arguments"
   }
   
 Argument "argument"
-  = name:IdentifierName': ' type:IdentifierOrArrayOfIdentifier nullable:'?'? {
+  = name:IdentifierName optional:'?'? ': ' type:IdentifierOrArrayOfIdentifier nullable:'?'? {
     return {
       type: 'Argument',
       name: name.name,
       argType: type,
       nullable: !!nullable,
+      optional: !!optional,
     }
   }
   
