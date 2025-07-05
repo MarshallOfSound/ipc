@@ -1,6 +1,6 @@
 {
   "name": "@marshallofsound/ipc",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "Typesafe, usable and clever Electron IPC",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
