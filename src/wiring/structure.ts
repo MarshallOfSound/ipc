@@ -126,7 +126,7 @@ export function wireStructure(structure: Structure, controller: Controller, expo
         '',
         `  // ${structure.name}.${property.key}`,
         ...(property.optional ? [`  if (typeof value.${property.key} !== 'undefined') {`] : []),
-        `  if (${property.nullable ? `value.${property.key} !== null && ` : ''}!${validatorFnOrPrimitiveValidator(property, inlineStructureName)}) return false;`,
+        `  ${property.optional ? '  ' : ''}if (${property.nullable ? `value.${property.key} !== null && ` : ''}!${validatorFnOrPrimitiveValidator(property, inlineStructureName)}) return false;`,
         ...(property.optional ? [`  }`] : []),
       ].join('\n');
     }),

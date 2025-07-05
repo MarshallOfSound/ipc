@@ -233,7 +233,7 @@ export function buildWiring(schema: Schema): Wiring {
       external: buildExternal('common', publicCommonExports),
     },
     commonRuntime: {
-      internal: commonRuntime || 'export { }',
+      internal: commonImportString + (commonRuntime || 'export { }'),
       external: '',
     },
   };
