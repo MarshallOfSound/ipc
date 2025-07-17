@@ -27,6 +27,6 @@
     "LICENSE"
   ],
   "peerDependencies": {
-    "electron": "^18.0.3"
+    "electron": ">=18.0.3"
   }
 }
