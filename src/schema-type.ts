@@ -18,8 +18,18 @@ export type ZodReference = {
 export type Validator = {
   type: 'Validator';
   name: string;
-  grammar: ValidatorGrammar;
+  grammar: MultiValidator | ValidatorGrammar;
 };
+
+export type MultiValidator = {
+  type: 'ValidatorStructure',
+  validators: NamedValidator[];
+}
+
+export type NamedValidator = {
+  name: string;
+  grammar: ValidatorGrammar;
+}
 
 export type ValidatorGrammar = ValidatorAndCondition | ValidatorOrCondition;
 

@@ -3,3 +3,9 @@ dist
 examples/*/app/ipc
 examples/*/tsconfig.json
 examples/*/dist
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions

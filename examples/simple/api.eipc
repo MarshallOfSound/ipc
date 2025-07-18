@@ -1,12 +1,21 @@
 module example.simple
 
-validator OnlyElectronJSDotOrg = AND(
-    origin is "https://www.electronjs.org"
-    OR(
-        is_main_frame is true
-        protocol is "https"
+validator OnlyElectronJSDotOrg = {
+    production: AND(
+        origin is "https://www.electronjs.org"
+        OR(
+            is_main_frame is true
+            protocol is "https"
+        )
     )
-)
+    development: AND(
+        origin is "https://dev.electronjs.org"
+        OR(
+            is_main_frame is true
+            protocol is "https"
+        )
+    )
+}
 
 subtype ComputerName = string(
     minLength: 2

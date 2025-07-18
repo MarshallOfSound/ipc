@@ -40,11 +40,27 @@ ModuleName "module"
     }
     
 Validator "validator"
-  = 'validator 'name:IdentifierName MaybeWhiteSpace'='MaybeWhiteSpace grammar:ValidatorGrammar newline* {
+  = 'validator 'name:IdentifierName MaybeWhiteSpace'='MaybeWhiteSpace grammar:(ValidatorStructure / ValidatorGrammar) newline* {
     return {
       type: 'Validator',
       name: name.name,
       grammar: grammar
+    }
+  }
+
+ValidatorStructure "validator_structure"
+  = '{' newline validators:(ValidatorOption*) MaybeWhiteSpace'}' {
+    return {
+      type: 'ValidatorStructure',
+      validators: validators
+    }
+  }
+
+ValidatorOption "validator_option"
+  = MaybeWhiteSpace prop:IdentifierName q:[?]?':'MaybeWhiteSpace grammar:ValidatorGrammar newline* {
+    return {
+      name: prop.name,
+      grammar: grammar,
     }
   }
   

@@ -82,8 +82,20 @@ function buildCondition(condition: ValidatorNestedCondition, process: 'browser' 
 }
 
 export function wireValidator(validator: Validator, controller: Controller): void {
+  let grammar: ValidatorGrammar;
+  if (validator.grammar.type === 'ValidatorStructure') {
+    const validatorToUse = process.env.EIPC_ENV ||  process.env.NODE_ENV || 'production';
+    const found = validator.grammar.validators.find(v => v.name === validatorToUse);
+    if (!found) {
+      throw new Error(`Had an environment dependant validator, but could not find the "${validatorToUse}" definition, either add that definition or set EIPC_ENV or NODE_ENV to the correct environment name`);
+    }
+    grammar = found.grammar;
+  } else {
+    grammar = validator.grammar;
+  }
+
   const dependsOnUrl: UrlDependency = { depends: false };
-  const browserCondition = buildGrammar(validator.grammar, 'browser', dependsOnUrl);
+  const browserCondition = buildGrammar(grammar, 'browser', dependsOnUrl);
   const browserEventValidator = [
     `function ${eventValidator(validator.name)}(event: Electron.IpcMainEvent | Electron.IpcMainInvokeEvent) {`,
     ...(dependsOnUrl.depends ? ['  if (!event.senderFrame) return false;', '  const url = new URL(event.senderFrame.url);'] : []),
@@ -93,7 +105,7 @@ export function wireValidator(validator: Validator, controller: Controller): voi
   ];
 
   dependsOnUrl.depends = false;
-  const rendererCondition = buildGrammar(validator.grammar, 'renderer', dependsOnUrl);
+  const rendererCondition = buildGrammar(grammar, 'renderer', dependsOnUrl);
   const rendererExposeValidator = [
     `function ${eventValidator(validator.name)}() {`,
     ...(dependsOnUrl.depends ? ['  const url = new URL(window.location.href);'] : []),
