@@ -8,6 +8,7 @@ export type Controller = {
   addCommonRuntimeExport: (name: string) => void;
   addBrowserCode: (code: string) => void;
   addPreloadCode: (code: string) => void;
+  addPreloadImport: (code: string) => void;
   addPreloadBridgeInitializer: (name: string) => void;
   addPreloadBridgeKeyAndType: (module: string, key: string, type: string) => void;
 };

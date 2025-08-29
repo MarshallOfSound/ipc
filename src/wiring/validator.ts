@@ -3,15 +3,17 @@ import { Validator, ValidatorGrammar, ValidatorNestedCondition } from '../schema
 import { eventValidator } from './_constants';
 
 type VariableType = 'Boolean' | 'String';
-const variables: Record<string, { depends_on_url: true; type: VariableType } | { depends_on_url: false; browser: string; renderer: string | null; type: VariableType }> = {
+const variables: Record<string, { depends_on_url: true; type: VariableType } | { depends_on_url: false; renderer_depends_on_webframe: boolean; browser: string; renderer: string | null; type: VariableType }> = {
   is_main_frame: {
     depends_on_url: false,
+    renderer_depends_on_webframe: true,
     browser: 'event.senderFrame?.parent === null',
-    renderer: 'window.top === window',
+    renderer: 'webFrame.top?.routingId === webFrame.routingId',
     type: 'Boolean',
   },
   is_packaged: {
     depends_on_url: false,
+    renderer_depends_on_webframe: false,
     browser: '$$app$$.isPackaged',
     renderer: null,
     type: 'Boolean'
@@ -34,28 +36,33 @@ const variables: Record<string, { depends_on_url: true; type: VariableType } | {
   },
 };
 
-interface UrlDependency {
-  depends: boolean;
+interface ConditionFlags {
+  renderer_depends_on_web_frame: boolean;
+  depends_on_url: boolean;
 }
 
-function buildGrammar(grammar: ValidatorGrammar, process: 'browser' | 'renderer', dep: UrlDependency): string {
+interface ConditionGrammar extends ConditionFlags {
+  grammar: string;
+}
+
+function buildGrammar(grammar: ValidatorGrammar, process: 'browser' | 'renderer', flags: ConditionFlags): string {
   switch (grammar.operation) {
     case 'And': {
-      return `(${grammar.conditions.map((condition) => buildCondition(condition, process, dep)).join(' && ')})`;
+      return `(${grammar.conditions.map((condition) => buildCondition(condition, process, flags)).join(' && ')})`;
     }
     case 'Or': {
-      return `(${grammar.conditions.map((condition) => buildCondition(condition, process, dep)).join(' || ')})`;
+      return `(${grammar.conditions.map((condition) => buildCondition(condition, process, flags)).join(' || ')})`;
     }
   }
 }
 
-function buildCondition(condition: ValidatorNestedCondition, process: 'browser' | 'renderer', dep: UrlDependency): string {
+function buildCondition(condition: ValidatorNestedCondition, process: 'browser' | 'renderer', flags: ConditionFlags): string {
   switch (condition.operation) {
     case 'And': {
-      return buildGrammar(condition, process, dep);
+      return buildGrammar(condition, process, flags);
     }
     case 'Or': {
-      return buildGrammar(condition, process, dep);
+      return buildGrammar(condition, process, flags);
     }
     case 'Is': {
       const { subject, target } = condition;
@@ -65,7 +72,9 @@ function buildCondition(condition: ValidatorNestedCondition, process: 'browser' 
 
       const info = variables[subject];
       if (info.depends_on_url) {
-        dep.depends = true;
+        flags.depends_on_url = true;
+      } else if (info.renderer_depends_on_webframe) {
+        flags.renderer_depends_on_web_frame = true;
       }
 
       if (info.type !== target.type) {
@@ -94,21 +103,21 @@ export function wireValidator(validator: Validator, controller: Controller): voi
     grammar = validator.grammar;
   }
 
-  const dependsOnUrl: UrlDependency = { depends: false };
-  const browserCondition = buildGrammar(grammar, 'browser', dependsOnUrl);
+  let dependencies: ConditionFlags = { depends_on_url: false, renderer_depends_on_web_frame: false };
+  const browserCondition = buildGrammar(grammar, 'browser', dependencies);
   const browserEventValidator = [
     `function ${eventValidator(validator.name)}(event: Electron.IpcMainEvent | Electron.IpcMainInvokeEvent) {`,
-    ...(dependsOnUrl.depends ? ['  if (!event.senderFrame) return false;', '  const url = new URL(event.senderFrame.url);'] : []),
+    ...(dependencies.depends_on_url ? ['  if (!event.senderFrame) return false;', '  const url = new URL(event.senderFrame.url);'] : []),
     `  if (${browserCondition}) return true;`,
     '  return false;',
     '}',
   ];
 
-  dependsOnUrl.depends = false;
-  const rendererCondition = buildGrammar(grammar, 'renderer', dependsOnUrl);
+  dependencies = { depends_on_url: false, renderer_depends_on_web_frame: false }
+  const rendererCondition = buildGrammar(grammar, 'renderer', dependencies);
   const rendererExposeValidator = [
     `function ${eventValidator(validator.name)}() {`,
-    ...(dependsOnUrl.depends ? ['  const url = new URL(window.location.href);'] : []),
+    ...(dependencies.depends_on_url ? ['  const url = new URL(window.location.href);'] : []),
     `  if (${rendererCondition}) return true;`,
     '  return false;',
     '}',
@@ -116,4 +125,7 @@ export function wireValidator(validator: Validator, controller: Controller): voi
 
   controller.addBrowserCode(browserEventValidator.join('\n'));
   controller.addPreloadCode(rendererExposeValidator.join('\n'));
+  if (dependencies.renderer_depends_on_web_frame) {
+    controller.addPreloadImport(`import { webFrame } from "electron/renderer";`);
+  }
 }

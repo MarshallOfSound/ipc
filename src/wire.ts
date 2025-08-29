@@ -85,6 +85,10 @@ export function buildWiring(schema: Schema): Wiring {
     addBrowserCode: (code: string) => {
       browser += code + '\n';
     },
+    addPreloadImport: (code: string) => {
+      if (preload.includes(code)) return;
+      preload = code + '\n' + preload;
+    },
     addPreloadCode: (code: string) => {
       preload += code + '\n';
     },
