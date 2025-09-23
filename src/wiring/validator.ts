@@ -87,6 +87,10 @@ function buildCondition(condition: ValidatorNestedCondition, process: 'browser' 
 
       return `((${info.depends_on_url ? `url.${subject}` : info[process]}) === ${target.type === 'String' ? JSON.stringify(target.value) : target.value})`;
     }
+    case 'DynamicGlobal': {
+      const { param } = condition;
+      return `(!!(globalThis as any)[${JSON.stringify(param)}])`;
+    }
   }
 }
 

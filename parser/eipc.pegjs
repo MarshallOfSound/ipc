@@ -86,10 +86,10 @@ ValidatorOrGrammar "validator_or_grammar"
   }
   
 ValidatorStatement "validator_statement"
-  = MaybeWhiteSpace statement:(ValidatorIsStatement / ValidatorStartsWithStatement / ValidatorGrammar) newline {
+  = MaybeWhiteSpace statement:(ValidatorIsStatement / ValidatorStartsWithStatement / ValidatorDynamicGlobalStatement / ValidatorGrammar) newline {
     return statement
   }
-  
+
 ValidatorIsStatement "validator_is_statement"
   = thing:IdentifierName  WhiteSpace'is'WhiteSpace value:StringOrBoolean {
     return {
@@ -99,7 +99,7 @@ ValidatorIsStatement "validator_is_statement"
       target: value,
     }
   }
-  
+
 ValidatorStartsWithStatement "validator_starts_with_statement"
   = thing:IdentifierName WhiteSpace'startsWith'WhiteSpace value:StringLiteral {
     return {
@@ -107,6 +107,15 @@ ValidatorStartsWithStatement "validator_starts_with_statement"
       operation: 'StartsWith',
       subject: thing.name,
       target: value,
+    }
+  }
+
+ValidatorDynamicGlobalStatement "validator_dynamic_global_statement"
+  = 'dynamic_global('param:IdentifierName')' {
+    return {
+      type: 'Condition',
+      operation: 'DynamicGlobal',
+      param: param.name,
     }
   }
   

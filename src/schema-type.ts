@@ -33,7 +33,7 @@ export type NamedValidator = {
 
 export type ValidatorGrammar = ValidatorAndCondition | ValidatorOrCondition;
 
-export type ValidatorNestedCondition = ValidatorAndCondition | ValidatorIsCondition | ValidatorOrCondition;
+export type ValidatorNestedCondition = ValidatorAndCondition | ValidatorIsCondition | ValidatorOrCondition | ValidatorDynamicGlobalCondition;
 
 export type ValidatorAndCondition = {
   type: 'Condition';
@@ -52,6 +52,12 @@ export type ValidatorIsCondition = {
   operation: 'Is';
   subject: string;
   target: ValidatorTarget;
+};
+
+export type ValidatorDynamicGlobalCondition = {
+  type: 'Condition';
+  operation: 'DynamicGlobal';
+  param: string;
 };
 
 export type ValidatorTarget = StringValue | BooleanValue;

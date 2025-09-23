@@ -17,6 +17,11 @@ validator OnlyElectronJSDotOrg = {
     )
 }
 
+validator OnlyWithDynamicGlobal = AND(
+    dynamic_global(fooBarRabbitCheese)
+    is_main_frame is true
+)
+
 subtype ComputerName = string(
     minLength: 2
     maxLength: 20
