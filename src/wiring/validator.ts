@@ -89,6 +89,10 @@ function buildCondition(condition: ValidatorNestedCondition, process: 'browser' 
     }
     case 'DynamicGlobal': {
       const { param } = condition;
+      // For renderer checks just expose and then the browser process will nuke the request
+      if (process === 'renderer') {
+        return '(true)';
+      }
       return `(!!(globalThis as any)[${JSON.stringify(param)}])`;
     }
   }
