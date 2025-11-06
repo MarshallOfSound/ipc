@@ -11,6 +11,7 @@ enum InterfaceType {
 type MethodTagInfo = {
   synchronous: boolean;
   event: boolean;
+  notImplemented: boolean;
 };
 
 const validatorFnOrPrimitiveValidator = (type: Identifier | IdentifierIDX | Array | MethodArgument, argName: string, nullable: boolean, optional: boolean) => {
@@ -38,6 +39,7 @@ function methodTagInfo(method: InterfaceMethod) {
   const info: MethodTagInfo = {
     synchronous: false,
     event: false,
+    notImplemented: false,
   };
 
   for (const tag of method.tags) {
@@ -45,6 +47,8 @@ function methodTagInfo(method: InterfaceMethod) {
       info.synchronous = true;
     } else if (tag.key === 'Event') {
       info.event = true;
+    } else if (tag.key === 'NotImplemented') {
+      info.notImplemented = true;
     } else {
       throw new Error(`Unrecognized tag "${tag.key}" on method "${method.name}"`);
     }
@@ -129,7 +133,10 @@ export function wireInterface(int: Interface, controller: Controller, schema: Sc
       `    return {`,
       `      setImplementation: (impl: I${int.name}Impl) => {`,
       ...int.methods
-        .filter((method) => !methodTagInfo(method).event)
+        .filter((method) => {
+          const info = methodTagInfo(method);
+          return !info.event && !info.notImplemented;
+        })
         .map((method) => {
           const tags = methodTagInfo(method);
           return [
@@ -161,7 +168,10 @@ export function wireInterface(int: Interface, controller: Controller, schema: Sc
         }),
       `        const dis = {`,
       ...int.methods
-        .filter((m) => methodTagInfo(m).event)
+        .filter((m) => {
+          const info = methodTagInfo(m);
+          return info.event && !info.notImplemented;
+        })
         .map((event) =>
           [
             `dispatch${upFirst(event.name)}(${event.arguments.map((arg) => `arg_${arg.name}${arg.optional ? '?' :''}: ${getTSForIdentifier(arg)}${arg.nullable ? ' | null' : ''}`).join(', ')}): void {`,
@@ -189,7 +199,10 @@ export function wireInterface(int: Interface, controller: Controller, schema: Sc
     const interfaceDefinition = [
       `export interface I${int.name}Impl {`,
       ...int.methods
-        .filter((m) => !methodTagInfo(m).event)
+        .filter((m) => {
+          const info = methodTagInfo(m);
+          return !info.event && !info.notImplemented;
+        })
         .map(
           (method) =>
             `  ${method.name}(${method.arguments.map((arg) => `${arg.name}${arg.optional ? '?' :''}: ${getTSForIdentifier(arg)}${arg.nullable ? ' | null' : ''}`).join(', ')}): ${methodReturn(method)};`,
@@ -212,8 +225,8 @@ export function wireInterface(int: Interface, controller: Controller, schema: Sc
     ];
 
     const rendererDefinition = [
-      `export const ${int.name}: I${int.name}Renderer = {`,
-      ...int.methods.map((method) => {
+      `export const ${int.name}: Partial<I${int.name}Renderer> = {`,
+      ...int.methods.filter((method) => !methodTagInfo(method).notImplemented).map((method) => {
         const info = methodTagInfo(method);
         const argsString = method.arguments.map((arg) => `${arg.name}${arg.optional ? '?' :''}: ${getTSForIdentifier(arg)}${arg.nullable ? ' | null' : ''}`).join(', ');
 
@@ -236,7 +249,7 @@ export function wireInterface(int: Interface, controller: Controller, schema: Sc
           '  },',
         ].join('\n');
       }),
-      '}',
+      `}`,
       ...(intInfo.autoContextBridge
         ? [
             `const ${initializerName} = (localBridged: Record<string, any>) => {`,
