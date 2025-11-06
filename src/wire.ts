@@ -215,7 +215,7 @@ export function buildWiring(schema: Schema): Wiring {
 
   const renderer = rendererBridges
     .map(([moduleName, key, type]) => {
-      return `import { ${type} } from '../common/${moduleName}';\nexport const ${key} = (window as any)['${moduleName}']['${key}'] as ${type}`;
+      return `import { ${type} } from '../common/${moduleName}';\nexport const ${key} = (globalThis as any)['${moduleName}']?.['${key}'] as Partial<${type}> | undefined`;
     })
     .join('\n');
 
