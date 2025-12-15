@@ -27,6 +27,27 @@ validator OnlyWithDynamicGlobal = AND(
     is_main_frame is true
 )
 
+// Validator demonstrating URL-based checks with multiple conditions
+// Invalid URLs (like about:blank) are handled gracefully by returning false
+validator MultiOriginValidator = {
+    production: AND(
+        is_main_frame is true
+        OR(
+            origin is "https://example.com"
+            hostname is "localhost"
+            protocol is "file:"
+        )
+    )
+    development: AND(
+        is_main_frame is true
+        OR(
+            origin is "https://dev.example.com"
+            hostname is "localhost"
+            protocol is "file:"
+        )
+    )
+}
+
 subtype ComputerName = string(
     minLength: 2
     maxLength: 20
