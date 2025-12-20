@@ -33,12 +33,8 @@ function CounterDisplay() {
   return (
     <div id="counter-display">
       <div id="state">{storeState.state}</div>
-      {storeState.state === 'ready' && (
-        <div id="value">{storeState.result}</div>
-      )}
-      {storeState.state === 'error' && (
-        <div id="error">{storeState.error.message}</div>
-      )}
+      {storeState.state === 'ready' && <div id="value">{storeState.result}</div>}
+      {storeState.state === 'error' && <div id="error">{storeState.error.message}</div>}
       <div id="render-count">{window.__RENDER_COUNT__}</div>
     </div>
   );

@@ -91,7 +91,7 @@ enum Status {
     Active = "active"
     Inactive = "inactive"
 }`,
-        'SetStatus(status: Status) -> string'
+        'SetStatus(status: Status) -> string',
       );
       const wiring = await generateWiringFromString(schema);
       expect(wiring.browser.internal).toContain('$eipc_validator$_Status');
@@ -103,7 +103,7 @@ enum Status {
     Active = "active"
     Inactive = "inactive"
 }`,
-        'GetStatus() -> Status'
+        'GetStatus() -> Status',
       );
       const wiring = await generateWiringFromString(schema);
       expect(wiring.browser.internal).toContain('$eipc_validator$_Status(result)');

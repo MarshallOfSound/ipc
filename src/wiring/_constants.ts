@@ -12,7 +12,8 @@ export const EVENT_VALIDATOR_PREFIX = '$eipc_event_validator$_';
 export const IPC_MESSAGE_PREFIX = `$eipc_message$_${crypto.randomUUID()}_$_`;
 
 export const ipcMessage = (schema: Schema, int: Interface, method: InterfaceMethod) => `${IPC_MESSAGE_PREFIX}${schema.name}_$_${int.name}_$_${method.name}`;
-export const ipcStoreMessage = (schema: Schema, int: Interface, method: InterfaceMethod, suffix: 'getState' | 'getStateSync' | 'update') => `${IPC_MESSAGE_PREFIX}${schema.name}_$_${int.name}_$_${method.name}_$store$_${suffix}`;
+export const ipcStoreMessage = (schema: Schema, int: Interface, method: InterfaceMethod, suffix: 'getState' | 'getStateSync' | 'update') =>
+  `${IPC_MESSAGE_PREFIX}${schema.name}_$_${int.name}_$_${method.name}_$store$_${suffix}`;
 export const validator = (symbolName: string) => `${VALIDATOR_PREFIX}${symbolName}`;
 export const eventValidator = (validatorName: string) => `${EVENT_VALIDATOR_PREFIX}${validatorName}`;
 

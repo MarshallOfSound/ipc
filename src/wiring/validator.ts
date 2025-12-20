@@ -3,7 +3,11 @@ import { Validator, ValidatorGrammar, ValidatorNestedCondition } from '../schema
 import { eventValidator } from './_constants';
 
 type VariableType = 'Boolean' | 'String';
-const variables: Record<string, { depends_on_url: true; type: VariableType; custom_expression?: string } | { depends_on_url: false; renderer_depends_on_webframe: boolean; browser: string; renderer: string | null; type: VariableType }> = {
+const variables: Record<
+  string,
+  | { depends_on_url: true; type: VariableType; custom_expression?: string }
+  | { depends_on_url: false; renderer_depends_on_webframe: boolean; browser: string; renderer: string | null; type: VariableType }
+> = {
   is_main_frame: {
     depends_on_url: false,
     renderer_depends_on_webframe: true,
@@ -16,7 +20,7 @@ const variables: Record<string, { depends_on_url: true; type: VariableType; cust
     renderer_depends_on_webframe: false,
     browser: '$$app$$.isPackaged',
     renderer: null,
-    type: 'Boolean'
+    type: 'Boolean',
   },
   protocol: {
     depends_on_url: true,
@@ -112,10 +116,12 @@ function buildCondition(condition: ValidatorNestedCondition, process: 'browser' 
 export function wireValidator(validator: Validator, controller: Controller): void {
   let grammar: ValidatorGrammar;
   if (validator.grammar.type === 'ValidatorStructure') {
-    const validatorToUse = process.env.EIPC_ENV ||  process.env.NODE_ENV || 'production';
-    const found = validator.grammar.validators.find(v => v.name === validatorToUse);
+    const validatorToUse = process.env.EIPC_ENV || process.env.NODE_ENV || 'production';
+    const found = validator.grammar.validators.find((v) => v.name === validatorToUse);
     if (!found) {
-      throw new Error(`Had an environment dependant validator, but could not find the "${validatorToUse}" definition, either add that definition or set EIPC_ENV or NODE_ENV to the correct environment name`);
+      throw new Error(
+        `Had an environment dependant validator, but could not find the "${validatorToUse}" definition, either add that definition or set EIPC_ENV or NODE_ENV to the correct environment name`,
+      );
     }
     grammar = found.grammar;
   } else {
@@ -132,7 +138,7 @@ export function wireValidator(validator: Validator, controller: Controller): voi
     '}',
   ];
 
-  dependencies = { depends_on_url: false, renderer_depends_on_web_frame: false }
+  dependencies = { depends_on_url: false, renderer_depends_on_web_frame: false };
   const rendererCondition = buildGrammar(grammar, 'renderer', dependencies);
   const rendererExposeValidator = [
     `function ${eventValidator(validator.name)}() {`,

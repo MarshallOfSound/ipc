@@ -5,7 +5,7 @@ let app: TestApp;
 let electronApp: ElectronApplication;
 let page: Page;
 
-test.beforeEach(async ({ }, testInfo) => {
+test.beforeEach(async ({}, testInfo) => {
   const useSandbox = testInfo.project.name === 'sandbox-on';
   app = await launchTestApp({ sandbox: useSandbox });
   electronApp = app.electronApp;
@@ -34,9 +34,12 @@ test.describe('Event Dispatching', () => {
     });
 
     // Wait for event to arrive
-    await page.waitForFunction(() => {
-      return (window as any).__EVENT_RECEIVED__.length > 0;
-    }, { timeout: 5000 });
+    await page.waitForFunction(
+      () => {
+        return (window as any).__EVENT_RECEIVED__.length > 0;
+      },
+      { timeout: 5000 },
+    );
 
     const events = await page.evaluate(() => (window as any).__EVENT_RECEIVED__);
     expect(events).toContain('hello-from-main');
@@ -58,9 +61,12 @@ test.describe('Event Dispatching', () => {
       (global as any).dispatchValueChanged('event-3');
     });
 
-    await page.waitForFunction(() => {
-      return (window as any).__EVENT_RECEIVED__.length >= 3;
-    }, { timeout: 5000 });
+    await page.waitForFunction(
+      () => {
+        return (window as any).__EVENT_RECEIVED__.length >= 3;
+      },
+      { timeout: 5000 },
+    );
 
     const events = await page.evaluate(() => (window as any).__EVENT_RECEIVED__);
     expect(events).toEqual(['event-1', 'event-2', 'event-3']);
@@ -331,9 +337,9 @@ test.describe('Main Frame Validation (is_main_frame)', () => {
           const iframeWindow = iframe.contentWindow as any;
           resolve({
             // TestAPI uses AllowAll validator - should be available
-            testAPI: !!(iframeWindow?.['e2e.test']?.['TestAPI']),
+            testAPI: !!iframeWindow?.['e2e.test']?.['TestAPI'],
             // MainFrameAPI uses MainFrameOnly validator - should NOT be available
-            mainFrameAPI: !!(iframeWindow?.['e2e.test']?.['MainFrameAPI']),
+            mainFrameAPI: !!iframeWindow?.['e2e.test']?.['MainFrameAPI'],
           });
         };
         document.getElementById('iframe-container')?.appendChild(iframe);

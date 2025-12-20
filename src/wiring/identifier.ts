@@ -1,4 +1,4 @@
-import { Array, Identifier, IdentifierIDX, MethodArgument } from "../schema-type"
+import { Array, Identifier, IdentifierIDX, MethodArgument } from '../schema-type';
 
 export const getTSForIdentifier = (ident: MethodArgument | Identifier | Array | IdentifierIDX): string => {
   switch (ident.type) {
@@ -9,6 +9,6 @@ export const getTSForIdentifier = (ident: MethodArgument | Identifier | Array | 
     case 'Identifier':
       return ident.name;
     case 'IdentifierIDX':
-      return `${ident.name}[${getTSForIdentifier(ident.idxKey)}]`
+      return `${ident.name}[${getTSForIdentifier(ident.idxKey)}]`;
   }
-}
+};

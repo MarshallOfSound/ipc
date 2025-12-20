@@ -1,0 +1,10 @@
+dist/
+node_modules/
+.yarn/
+.claude/
+*.lock
+tests/e2e/test-app/ipc/
+tests/e2e/test-app/dist/
+examples/*/app/
+test-results/
+playwright-report/

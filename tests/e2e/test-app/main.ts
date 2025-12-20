@@ -5,7 +5,7 @@ import { TestAPI, MainFrameAPI, OriginRestrictedAPI, DynamicGlobalAPI } from './
 
 let counterValue = 0;
 let mainWindow: BrowserWindow | null = null;
-let currentDispatcher: ReturnType<ReturnType<typeof TestAPI['for']>['setImplementation']> | null = null;
+let currentDispatcher: ReturnType<ReturnType<(typeof TestAPI)['for']>['setImplementation']> | null = null;
 
 // Use SANDBOX=true to test with sandbox enabled (requires bundled preload)
 const useSandbox = process.env.SANDBOX === 'true';
@@ -21,9 +21,7 @@ const showWindow = process.env.DEBUG_E2E_TEST === '1';
 const loadUrl = process.env.LOAD_URL;
 
 // Register custom protocol for testing origin validation
-protocol.registerSchemesAsPrivileged([
-  { scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true } }
-]);
+protocol.registerSchemesAsPrivileged([{ scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true } }]);
 
 app.whenReady().then(async () => {
   // Register protocol handler for app:// URLs

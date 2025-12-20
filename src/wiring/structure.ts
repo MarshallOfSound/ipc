@@ -88,16 +88,13 @@ export function wireStructure(structure: Structure, controller: Controller, expo
   const getInlineStructureName = (propertyKey: string) => `${structure.name}${INLINE_STRUCTURE_JOINER}${propertyKey}`;
   const structureDeclaration = [
     `export interface ${structure.name} {`,
-    ...structure.properties.map(
-      (property) =>
-        {
-          const keyPrefix = `  ${property.key}${property.optional ? '?' : ''}`;
-          if (property.value.type === 'Identifier' || property.value.type === 'IdentifierIDX' || property.value.type === 'Array') {
-            return `${keyPrefix}: ${maybeNullable(getTSForIdentifier(property.value), property.nullable)};`
-          }
-          return `${keyPrefix}: ${maybeNullable(getInlineStructureName(property.key), property.nullable)};`
-        }
-    ),
+    ...structure.properties.map((property) => {
+      const keyPrefix = `  ${property.key}${property.optional ? '?' : ''}`;
+      if (property.value.type === 'Identifier' || property.value.type === 'IdentifierIDX' || property.value.type === 'Array') {
+        return `${keyPrefix}: ${maybeNullable(getTSForIdentifier(property.value), property.nullable)};`;
+      }
+      return `${keyPrefix}: ${maybeNullable(getInlineStructureName(property.key), property.nullable)};`;
+    }),
     '}',
   ];
 
@@ -106,7 +103,6 @@ export function wireStructure(structure: Structure, controller: Controller, expo
     `  if (!value || typeof value !== 'object') return false;`,
     ...structure.properties.map((property) => {
       const inlineStructureName = getInlineStructureName(property.key);
-
 
       if (property.value.type === 'InlineStructure') {
         wireStructure(

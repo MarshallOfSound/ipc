@@ -9,12 +9,16 @@
   "license": "MIT",
   "scripts": {
     "build": "tsc && tsc -p tsconfig.esm.json",
-    "prettier": "prettier --check \"src/**/*.ts\"",
-    "prettier:write": "prettier --write \"src/**/*.ts\"",
+    "lint": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\" \"tests/**/*.tsx\"",
+    "lint:fix": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\" \"tests/**/*.tsx\"",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "yarn test:e2e:build && playwright test",
-    "test:e2e:build": "node tests/e2e/test-app/build.js && tsc -p tests/e2e/test-app/tsconfig.json"
+    "test:e2e:build": "node tests/e2e/test-app/build.js && tsc -p tests/e2e/test-app/tsconfig.json",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": "prettier --write"
   },
   "dependencies": {
     "peggy": "^1.2.0"
@@ -26,6 +30,8 @@
     "@types/react-dom": "^19",
     "electron": "^36.4.0",
     "esbuild": "^0.27.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
     "prettier": "^3.5.3",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
