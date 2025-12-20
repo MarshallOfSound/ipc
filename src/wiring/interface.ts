@@ -5,7 +5,6 @@ import { getTSForIdentifier } from './identifier';
 
 enum InterfaceType {
   RendererAPI,
-  BroadcastAPI,
 }
 
 type MethodTagInfo = {
@@ -87,9 +86,6 @@ function interfaceTagInfo(int: Interface) {
     if (tag.key === 'RendererAPI') {
       if (interfaceType !== null) throw new Error(`Interface ${int.name} declared as multiple different API types`);
       interfaceType = InterfaceType.RendererAPI;
-    } else if (tag.key === 'BroadcastAPI') {
-      if (interfaceType !== null) throw new Error(`Interface ${int.name} declared as multiple different API types`);
-      interfaceType = InterfaceType.BroadcastAPI;
     } else if (tag.key === 'ContextBridge') {
       autoContextBridge = true;
     } else if (tag.key === 'Validator') {
@@ -103,7 +99,7 @@ function interfaceTagInfo(int: Interface) {
   }
 
   if (interfaceType === null) {
-    throw new Error(`Interface ${int.name} does not have a declared API type of either [RendererAPI] or [BroadcastAPI]`);
+    throw new Error(`Interface ${int.name} does not have a declared API type of [RendererAPI]`);
   }
 
   if (validators.length === 0) {

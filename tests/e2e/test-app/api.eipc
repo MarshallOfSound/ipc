@@ -4,6 +4,18 @@ validator AllowAll = AND(
     is_packaged is false
 )
 
+zod_reference Email {
+    import = "../../../schemas"
+    type = "Email"
+    schema = "emailSchema"
+}
+
+zod_reference UserId {
+    import = "../../../schemas"
+    type = "UserId"
+    schema = "userIdSchema"
+}
+
 validator MainFrameOnly = AND(
     is_packaged is false
     is_main_frame is true
@@ -58,6 +70,8 @@ interface TestAPI {
     ValidateUsername(name: Username) -> boolean
     ValidateNumber(num: PositiveNumber) -> boolean
     ValidateBoundedNumber(num: BoundedNumber) -> boolean
+    ValidateEmail(email: Email) -> boolean
+    ValidateUserId(id: UserId) -> boolean
 }
 
 [RendererAPI]

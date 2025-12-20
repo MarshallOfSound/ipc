@@ -183,6 +183,80 @@ test.describe('Subtype Validation', () => {
 // Origin validation tests moved to origin.test.ts
 // They use separate Electron app launches with different initial URLs
 
+test.describe('Zod Reference Validation', () => {
+  test('valid email passes zod validation', async () => {
+    const result = await page.evaluate(async () => {
+      const api = (window as any)['e2e.test']?.['TestAPI'];
+      return await api?.ValidateEmail('test@example.com');
+    });
+    expect(result).toBe(true);
+  });
+
+  test('invalid email fails zod validation', async () => {
+    const result = await page.evaluate(async () => {
+      const api = (window as any)['e2e.test']?.['TestAPI'];
+      try {
+        await api?.ValidateEmail('not-an-email');
+        return { threw: false };
+      } catch (e: any) {
+        return { threw: true, message: e.message };
+      }
+    });
+    expect(result.threw).toBe(true);
+    expect(result.message).toContain('validation');
+  });
+
+  test('valid userId passes zod validation', async () => {
+    const result = await page.evaluate(async () => {
+      const api = (window as any)['e2e.test']?.['TestAPI'];
+      return await api?.ValidateUserId(42);
+    });
+    expect(result).toBe(true);
+  });
+
+  test('negative userId fails zod validation', async () => {
+    const result = await page.evaluate(async () => {
+      const api = (window as any)['e2e.test']?.['TestAPI'];
+      try {
+        await api?.ValidateUserId(-5);
+        return { threw: false };
+      } catch (e: any) {
+        return { threw: true, message: e.message };
+      }
+    });
+    expect(result.threw).toBe(true);
+    expect(result.message).toContain('validation');
+  });
+
+  test('non-integer userId fails zod validation', async () => {
+    const result = await page.evaluate(async () => {
+      const api = (window as any)['e2e.test']?.['TestAPI'];
+      try {
+        await api?.ValidateUserId(3.14);
+        return { threw: false };
+      } catch (e: any) {
+        return { threw: true, message: e.message };
+      }
+    });
+    expect(result.threw).toBe(true);
+    expect(result.message).toContain('validation');
+  });
+
+  test('zero userId fails zod validation (must be positive)', async () => {
+    const result = await page.evaluate(async () => {
+      const api = (window as any)['e2e.test']?.['TestAPI'];
+      try {
+        await api?.ValidateUserId(0);
+        return { threw: false };
+      } catch (e: any) {
+        return { threw: true, message: e.message };
+      }
+    });
+    expect(result.threw).toBe(true);
+    expect(result.message).toContain('validation');
+  });
+});
+
 test.describe('Dynamic Global Validation', () => {
   test('API works when dynamic global is set', async () => {
     // Set the dynamic global

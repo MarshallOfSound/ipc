@@ -1,164 +1,376 @@
 # @marshallofsound/ipc
 
-> Experimental IPC module for Electron, provides type safe, validated and
-> secure IPC messaging with zero boilerplate
+> Type-safe, validated, and secure Electron IPC with zero boilerplate
 
-## What is this module?
+## Why?
 
-This serves to solve the primary use case of Electron's IPC layer, namely
-exposing an API or set of APIs from the privileged main process to a
-sandboxed / less privileged renderer process.
+Electron apps typically expose APIs from the main process to renderer processes using `ipcMain.handle` and `ipcRenderer.invoke`. This works, but leads to:
 
-Normally apps end up building their own boilerplate to solve this use case
-using `ipcMain.handle` and `ipcRenderer.invoke`.  These primitives are
-incredibly powerful and allow app developers to do pretty much whatever
-they want.  But for folks that expose 10s to 100s of APIs to their
-application the boilerplate can become a massive maintenance burden along
-with being a nasty code smell due to the excessive duplication.
+- **Boilerplate explosion** - Each API requires handler registration, message channel naming, and contextBridge exposure
+- **No type safety** - TypeScript can't verify that renderer calls match main process handlers
+- **No validation** - Invalid messages aren't rejected, leading to runtime errors or security issues
+- **No origin checking** - Any webpage loaded in your app can call any exposed API
 
-App developers also typically don't validate their IPC messages, either their
-structure or their origin.  This leads to insecure-by-default IPC which is not
-a good position to be in.
+This module solves all of these problems with a schema-first approach that generates fully typed, validated, and secure IPC code.
 
-This module solves a lot of problems listed above by:
+## Features
 
-* Completely eliminating `invoke` / `handle` boilerplate
-* Validation as a first party concept, all invalid messages are dropped
-* Origin validation as a first party concept, messages from unexpected origins are dropped
-* Automated `contextBridge` exposure to completely remove the final step of boilerplate
-* Type safety via generated typescript files in addition to runtime IPC validation
+- **Zero boilerplate** - Define your API in a schema, get all the wiring generated
+- **Type safe** - Generated TypeScript ensures renderer calls match main process implementations
+- **Secure by default** - Runtime validation of arguments/return values, origin checking, frame restrictions
+- **Events & Stores** - Main-to-renderer events and reactive state with React hooks
+- **Automatic contextBridge** - APIs are automatically exposed to renderer
 
-## How do I use it?
-
-For now the docs are WIP while the module is being worked on, a very sketchy example is
-provided in `examples/simple`.  You can run this example by using this command locally.
+## Installation
 
 ```bash
-yarn build && node examples/build.js && yarn electron examples/simple/dist
+npm install @marshallofsound/ipc
+# or
+yarn add @marshallofsound/ipc
 ```
 
-The developer UX needs work so don't expect the current example to be "how to use it"
-going forward.
+Requires Electron >= 18.0.3
 
-## How does it work?
+## Quick Start
 
-`@marshallofsound/ipc` takes a set of `.eipc` schema files and generates a collection of
-typescript files for you to use in your project.  This means that your build system
-needs to support Typescript.
+### 1. Create a schema file
 
-These files are generated into a folder structure like below.
+Create `schemas/api.eipc`:
 
-```bash
-my-app/ipc
-├── _internal
-│   ├── browser
-│   │   └── example.simple.ts
-│   ├── common
-│   │   └── example.simple.ts
-│   └── renderer
-│       └── example.simple.ts
-├── browser
-│   └── example.simple.ts
-├── common
-│   └── example.simple.ts
-└── renderer
-    └── example.simple.ts
 ```
+module myapp
 
-The `_internal` folder should be completely ignored, consuming it directly is unsupported
-and messing with the generated internals is very inadvisable.
-
-For each schema in your schemas folder a `{module_name}.ts` file will be generated in
-`browser`, `common` and `renderer`.  Similar to other Electron modules the `browser`
-folder should only be consumed from the main process, `common` can be consumed from
-either process and `renderer` should only be consumed from a renderer process.
-
-Structures / type aliases will be exported from `common` whereas the APIs themselves
-be exposed via `browser` / `renderer` files.
-
-For instance given a hello world schema file.
-
-```txt
-module helloworld
-
-validator OnlyExample = AND(
-    origin is "https://example.com"
+validator OnlyMyApp = AND(
+    origin is "https://myapp.com"
+    is_main_frame is true
 )
 
 [RendererAPI]
-[Validator=OnlyExample]
+[Validator=OnlyMyApp]
 [ContextBridge]
-interface Greeter {
-    Say(name: string) -> string
+interface FileSystem {
+    ReadConfig() -> string
+    WriteConfig(content: string) -> boolean
 }
 ```
 
-We will generate APIs that you consume like so.
+### 2. Generate the wiring
 
 ```ts
-// This code runs in the main process
+import { generateWiring } from '@marshallofsound/ipc';
+import path from 'path';
 
-// Greeter is the "interface" name
-// "ipc" is the folder our wiring was generated in
-// "helloworld" is our module name from our schema file
-import { Greeter } from './ipc/browser/helloworld';
+await generateWiring({
+    schemaFolder: path.resolve(__dirname, 'schemas'),
+    wiringFolder: path.resolve(__dirname, 'src/ipc'),
+});
+```
 
-// In order for this API to be consumable from a renderer we must
-// provide an actual implementation
-Greeter.setImplementation({
-    Say(name: string) {
-        return `Hello World! ${name}`;
+> **Tip:** When using Electron Forge, call this in the `generateAssets` hook in your `forge.config.js`.
+
+### 3. Implement in main process
+
+```ts
+// main.ts
+import { FileSystem } from './ipc/browser/myapp';
+import fs from 'fs';
+
+FileSystem.for(mainWindow.webContents.mainFrame).setImplementation({
+    ReadConfig(path) {
+        // Ensure you
+        return fs.readFileSync(configPath, 'utf-8');
+    },
+    WriteConfig(content) {
+        fs.writeFileSync(configPath, content);
+        return true;
+    },
+});
+```
+
+### 4. Initialize in preload
+
+```ts
+// preload.ts
+import './ipc/preload/myapp';
+```
+
+### 5. Call from renderer
+
+```ts
+// renderer.ts (or browser devtools)
+const content = await window.myapp.FileSystem.ReadConfig();
+```
+
+## Schema Reference
+
+### Module Declaration
+
+Every schema file must start with a module declaration:
+
+```
+module company.product
+```
+
+The module name becomes the namespace on `window` (e.g., `window['company.product']`).
+
+### Validators
+
+Validators control when APIs are exposed and when calls are allowed. They run both at preload time (to decide whether to expose the API) and at call time (to verify each request).
+
+```
+validator MyValidator = AND(
+    condition1
+    condition2
+    OR(
+        condition3
+        condition4
+    )
+)
+```
+
+#### Available Conditions
+
+| Condition | Description |
+|-----------|-------------|
+| `is_packaged is true/false` | Check if app is packaged (production) or running from source |
+| `is_main_frame is true/false` | Check if request comes from main frame (not iframe) |
+| `origin is "https://example.com"` | Check the page origin (supports custom protocols like `app://`) |
+| `hostname is "localhost"` | Check the hostname |
+| `protocol is "https:"` | Check the protocol |
+| `dynamic_global(flagName)` | Check if `global.flagName` is truthy in main process |
+
+#### Environment-Specific Validators
+
+Define different rules for different environments:
+
+```
+validator MyValidator = {
+    production: AND(
+        is_packaged is true
+        origin is "https://myapp.com"
+    )
+    development: AND(
+        is_packaged is false
+        hostname is "localhost"
+    )
+}
+```
+
+The environment is determined by `EIPC_ENV` or `NODE_ENV` at build time. This is **not** a runtime flag.
+
+### Subtypes
+
+Define validated string or number types:
+
+```
+subtype Username = string(
+    minLength: 3
+    maxLength: 20
+)
+
+subtype HttpsUrl = string(
+    startsWith: "https://"
+)
+
+subtype Percentage = number(
+    minValue: 0
+    maxValue: 100
+)
+
+subtype PositiveInt = number(
+    minValue: 0
+)
+```
+
+Arguments using these subtypes are validated at runtime before reaching your implementation.
+
+### Zod References (Advanced)
+
+When subtypes aren't expressive enough, you can reference external [Zod](https://zod.dev) schemas for complex validation:
+
+```
+zod_reference Email {
+    import = "./schemas"
+    type = "Email"
+    schema = "emailSchema"
+}
+```
+
+This requires a corresponding TypeScript file:
+
+```ts
+// schemas.ts
+import { z } from 'zod';
+
+export const emailSchema = z.string().email();
+export type Email = z.infer<typeof emailSchema>;
+```
+
+The generated code will:
+- Import and re-export the TypeScript type
+- Use `schema.safeParse()` for runtime validation
+
+> **Note:** Import paths are relative to the generated `ipc/_internal/` directory, not your schema file.
+
+### Enums
+
+```
+enum Platform {
+    MacOS = "darwin"
+    Windows = "win32"
+    Linux = "linux"
+}
+```
+
+Values are optional - if omitted, the enum name is used as the value.
+
+### Structures
+
+```
+structure UserInfo {
+    id: number
+    name: string
+    email?: string           // Optional field
+    metadata: {              // Nested inline structure
+        createdAt: number
+        updatedAt: number
+    }
+}
+```
+
+### Interfaces
+
+Interfaces define the actual APIs exposed to renderers.
+
+```
+[RendererAPI]
+[Validator=MyValidator]
+[ContextBridge]
+interface MyAPI {
+    // Async method (default)
+    GetData(id: number) -> string
+
+    // Sync method
+    [Sync]
+    GetDataSync(id: number) -> string
+
+    // Method with optional return
+    FindUser(name: string) -> UserInfo?
+
+    // Event (main -> renderer)
+    [Event]
+    OnDataChanged(newData: string)
+
+    // Store (reactive state with React hooks)
+    [Store]
+    currentUser() -> UserInfo
+
+    // Placeholder for future features
+    [NotImplemented]
+    FutureMethod() -> string
+}
+```
+
+#### Interface Attributes
+
+| Attribute | Description |
+|-----------|-------------|
+| `[RendererAPI]` | API called from renderer, implemented in main |
+| `[Validator=Name]` | Apply a validator to all methods |
+| `[ContextBridge]` | Auto-expose via contextBridge |
+
+#### Method Attributes
+
+| Attribute | Description |
+|-----------|-------------|
+| `[Sync]` | Synchronous IPC (blocks renderer) |
+| `[Event]` | Event dispatched from main to renderer |
+| `[Store]` | Reactive state with `getState()`, `getStateSync()`, `onStateChange()` |
+| `[NotImplemented]` | Placeholder - throws if called, used to generate types for old methods that are no longer implemented |
+
+### Types
+
+| Type | Description |
+|------|-------------|
+| `string` | String value |
+| `number` | Number value |
+| `boolean` | Boolean value |
+| `Type?` | Optional/nullable type |
+| `CustomType` | Reference to enum, structure, or subtype |
+
+## Generated Code Structure
+
+```
+ipc/
+├── browser/           # Main process - import from here
+│   └── myapp.ts
+├── preload/           # Preload scripts - import to initialize
+│   └── myapp.ts
+├── renderer/          # Renderer process - for type-safe access
+│   └── myapp.ts
+├── renderer-hooks/    # React hooks for stores
+│   └── myapp.ts
+├── common/            # Shared types - import from anywhere
+│   └── myapp.ts
+└── _internal/         # Generated internals - don't import directly
+```
+
+## Main Process API
+
+```ts
+import { MyAPI } from './ipc/browser/myapp';
+
+// Set up handlers for a specific frame
+const dispatcher = MyAPI.for(mainWindow.webContents.mainFrame).setImplementation({
+    GetData(id) {
+        return `Data for ${id}`;
+    },
+    getInitialCurrentUserState() {
+        return { id: 1, name: 'Guest' };
     },
 });
 
-// Typescript will validate the implementation we have provided is accurate
-// We will validate that Say() returns the expected type at runtime as well
+// Dispatch events
+dispatcher.dispatchOnDataChanged('new data');
+
+// Update store state
+dispatcher.updateCurrentUserStore({ id: 2, name: 'User' });
+
+// Get existing dispatcher
+const existing = MyAPI.getDispatcher(frame);
 ```
 
-```ts
-// This code runs in the preload script
-// Currently you must load the renderer entry point manually to initialize
-// in the future we may make this more automatic
-import './ipc/renderer/helloworld';
+## React Hooks
+
+For `[Store]` methods, React hooks are generated:
+
+```tsx
+import { useCurrentUserStore } from './ipc/renderer-hooks/myapp';
+
+function UserDisplay() {
+    const state = useCurrentUserStore();
+
+    if (state.state === 'loading') return <div>Loading...</div>;
+    if (state.state === 'error') return <div>Error: {state.error.message}</div>;
+
+    return <div>Hello, {state.result.name}!</div>;
+}
 ```
 
-```ts
-// This code runs in devtools / on your webpage (in this case example.com)
+The hook returns:
+- `{ state: 'loading' }` - Initial load in progress
+- `{ state: 'ready', result: T }` - Data available
+- `{ state: 'error', error: Error }` - Load failed
 
-// "helloworld" is our module name from our schema file
-// "Greeter" is the "interface" name we want to call into
-window.helloworld.Greeter.Say()
-    .then((result) => console.log(result))
-    .catch((err) => console.error(err))
+## Testing
 
-// This is not currently type safe, you can get "IGreeterRenderer" as an interface type
-// though and assign "Greeter" to that type to obtain type safety.  At some point
-// in the future we may correctly augment the Window interface to ensure type safety.
-```
+```bash
+# Unit tests
+yarn test
 
-Under the hood this uses `ipcMain.handle/invoke` and validates arguments / return values
-at every stage along with only exposing / responding to messages in valid origins.  In this
-example if you navigated to `electronjs.org` the API would not be exposed, navigating back to
-`example.com` would re-expose it.
+# E2E tests (Electron + Playwright)
+yarn test:e2e
 
-## Schema Syntax
-
-Documentation on this is coming soon, currently the example in `examples/simple` covers most
-of the supported syntax.
-
-## API
-
-```js
-import { generateWiring } from '@marshallofsound/ipc';
-
-generateWiring({
-    // Absolute path to a folder containing valid ".eipc" schema files
-    schemaFolder: path.resolve(__dirname, 'schemas'),
-    // Absolute path to a folder to generate the IPC wiring in
-    wiringFolder: path.resolve(__dirname, 'src', 'ipc'),
-}).then(() => {
-    console.log('Wiring generated');
-}).catch((err) => {
-    console.error('Wiring generation failed:', err);
-});
+# E2E with visible windows (for debugging)
+DEBUG_E2E_TEST=1 yarn test:e2e
 ```

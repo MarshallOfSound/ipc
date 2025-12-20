@@ -76,6 +76,14 @@ app.whenReady().then(async () => {
       ValidateBoundedNumber(num) {
         return true;
       },
+      ValidateEmail(email) {
+        // If we get here, zod validation passed
+        return true;
+      },
+      ValidateUserId(id) {
+        // If we get here, zod validation passed
+        return true;
+      },
     });
 
     MainFrameAPI.for(frame).setImplementation({
