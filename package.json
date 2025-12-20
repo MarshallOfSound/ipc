@@ -4,7 +4,7 @@
   "description": "Typesafe, usable and clever Electron IPC",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
-  "repository": "https://github.com/electron/ipc",
+  "repository": "https://github.com/MarshallOfSound/ipc",
   "author": "Samuel Attard",
   "license": "MIT",
   "scripts": {
