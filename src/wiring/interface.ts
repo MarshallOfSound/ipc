@@ -5,7 +5,6 @@ import { getTSForIdentifier } from './identifier';
 
 enum InterfaceType {
   RendererAPI,
-  BroadcastAPI,
 }
 
 type MethodTagInfo = {
@@ -87,9 +86,6 @@ function interfaceTagInfo(int: Interface) {
     if (tag.key === 'RendererAPI') {
       if (interfaceType !== null) throw new Error(`Interface ${int.name} declared as multiple different API types`);
       interfaceType = InterfaceType.RendererAPI;
-    } else if (tag.key === 'BroadcastAPI') {
-      if (interfaceType !== null) throw new Error(`Interface ${int.name} declared as multiple different API types`);
-      interfaceType = InterfaceType.BroadcastAPI;
     } else if (tag.key === 'ContextBridge') {
       autoContextBridge = true;
     } else if (tag.key === 'Validator') {
@@ -103,7 +99,7 @@ function interfaceTagInfo(int: Interface) {
   }
 
   if (interfaceType === null) {
-    throw new Error(`Interface ${int.name} does not have a declared API type of either [RendererAPI] or [BroadcastAPI]`);
+    throw new Error(`Interface ${int.name} does not have a declared API type of [RendererAPI]`);
   }
 
   if (validators.length === 0) {
@@ -266,7 +262,7 @@ export function wireInterface(int: Interface, controller: Controller, schema: Sc
         })
         .map((event) =>
           [
-            `dispatch${upFirst(event.name)}(${event.arguments.map((arg) => `arg_${arg.name}${arg.optional ? '?' :''}: ${getTSForIdentifier(arg)}${arg.nullable ? ' | null' : ''}`).join(', ')}): void {`,
+            `dispatch${upFirst(event.name)}(${event.arguments.map((arg) => `arg_${arg.name}${arg.optional ? '?' : ''}: ${getTSForIdentifier(arg)}${arg.nullable ? ' | null' : ''}`).join(', ')}): void {`,
             ...event.arguments.map(
               (arg, index) =>
                 `  if (!${validatorFnOrPrimitiveValidator(arg, `arg_${arg.name}`, arg.nullable, arg.optional)}) throw new Error('Argument "${arg.name}" at position ${index} to event "${
@@ -313,7 +309,7 @@ export function wireInterface(int: Interface, controller: Controller, schema: Sc
         })
         .map(
           (method) =>
-            `  ${method.name}(${method.arguments.map((arg) => `${arg.name}${arg.optional ? '?' :''}: ${getTSForIdentifier(arg)}${arg.nullable ? ' | null' : ''}`).join(', ')}): ${methodReturn(method)};`,
+            `  ${method.name}(${method.arguments.map((arg) => `${arg.name}${arg.optional ? '?' : ''}: ${getTSForIdentifier(arg)}${arg.nullable ? ' | null' : ''}`).join(', ')}): ${methodReturn(method)};`,
         ),
       ...int.methods
         .filter((m) => methodTagInfo(m).store)
@@ -328,78 +324,77 @@ export function wireInterface(int: Interface, controller: Controller, schema: Sc
         .filter((m) => !methodTagInfo(m).event && !methodTagInfo(m).store)
         .map(
           (method) =>
-            `  ${method.name}(${method.arguments.map((arg) => `${arg.name}${arg.optional ? '?' :''}: ${getTSForIdentifier(arg)}${arg.nullable ? ' | null' : ''}`).join(', ')}): ${methodReturn(method, true)};`,
+            `  ${method.name}(${method.arguments.map((arg) => `${arg.name}${arg.optional ? '?' : ''}: ${getTSForIdentifier(arg)}${arg.nullable ? ' | null' : ''}`).join(', ')}): ${methodReturn(method, true)};`,
         ),
       ...int.methods
         .filter((m) => methodTagInfo(m).event)
         .map(
           (method) =>
-            `  on${upFirst(method.name)}(fn: (${method.arguments.map((arg) => `${arg.name}${arg.optional ? '?' :''}: ${getTSForIdentifier(arg)}${arg.nullable ? ' | null' : ''}`).join(', ')}) => void): () => void;`,
+            `  on${upFirst(method.name)}(fn: (${method.arguments.map((arg) => `${arg.name}${arg.optional ? '?' : ''}: ${getTSForIdentifier(arg)}${arg.nullable ? ' | null' : ''}`).join(', ')}) => void): () => void;`,
         ),
-      ...int.methods
-        .filter((m) => methodTagInfo(m).store)
-        .map(
-          (method) =>
-            `  ${method.name}Store: ${storeType(method)}`,
-        ),
+      ...int.methods.filter((m) => methodTagInfo(m).store).map((method) => `  ${method.name}Store: ${storeType(method)}`),
       '}',
     ];
 
     const rendererDefinition = [
       `export const ${int.name}: Partial<I${int.name}Renderer> = {`,
-      ...int.methods.filter((method) => {
-        const info = methodTagInfo(method);
-        return !info.notImplemented && !info.store;
-      }).map((method) => {
-        const info = methodTagInfo(method);
-        const argsString = method.arguments.map((arg) => `${arg.name}${arg.optional ? '?' :''}: ${getTSForIdentifier(arg)}${arg.nullable ? ' | null' : ''}`).join(', ');
+      ...int.methods
+        .filter((method) => {
+          const info = methodTagInfo(method);
+          return !info.notImplemented && !info.store;
+        })
+        .map((method) => {
+          const info = methodTagInfo(method);
+          const argsString = method.arguments.map((arg) => `${arg.name}${arg.optional ? '?' : ''}: ${getTSForIdentifier(arg)}${arg.nullable ? ' | null' : ''}`).join(', ');
 
-        if (info.event) {
-          return [
-            `  on${upFirst(method.name)}(fn: (${argsString}) => void) {`,
-            `    const handler = (e: unknown, ${argsString}) => fn(${method.arguments.map((arg) => arg.name).join(', ')});`,
-            `    ipcRenderer.on('${ipcMessage(schema, int, method)}', handler)`,
-            `    return () => { ipcRenderer.removeListener('${ipcMessage(schema, int, method)}', handler); };`,
-            `  },`,
-          ].join('\n');
-        }
-        if (info.synchronous) {
+          if (info.event) {
+            return [
+              `  on${upFirst(method.name)}(fn: (${argsString}) => void) {`,
+              `    const handler = (e: unknown, ${argsString}) => fn(${method.arguments.map((arg) => arg.name).join(', ')});`,
+              `    ipcRenderer.on('${ipcMessage(schema, int, method)}', handler)`,
+              `    return () => { ipcRenderer.removeListener('${ipcMessage(schema, int, method)}', handler); };`,
+              `  },`,
+            ].join('\n');
+          }
+          if (info.synchronous) {
+            return [
+              `  ${method.name}(${argsString}) {`,
+              `    const response = ipcRenderer.sendSync('${ipcMessage(schema, int, method)}'${method.arguments.length ? ', ' : ''}${method.arguments.map((arg) => arg.name).join(', ')});`,
+              `    if (response.error) throw new Error(response.error);`,
+              `    return response.result;`,
+              `  },`,
+            ].join('\n');
+          }
           return [
             `  ${method.name}(${argsString}) {`,
-            `    const response = ipcRenderer.sendSync('${ipcMessage(schema, int, method)}'${method.arguments.length ? ', ' : ''}${method.arguments.map((arg) => arg.name).join(', ')});`,
-            `    if (response.error) throw new Error(response.error);`,
-            `    return response.result;`,
+            `    return ipcRenderer.invoke('${ipcMessage(schema, int, method)}'${method.arguments.length ? ', ' : ''}${method.arguments.map((arg) => arg.name).join(', ')});`,
+            '  },',
+          ].join('\n');
+        }),
+      // Store implementations
+      ...int.methods
+        .filter((method) => methodTagInfo(method).store)
+        .map((method) => {
+          const innerBase = method.returns ? getTSForIdentifier(method.returns.type) : 'void';
+          const inner = method.returns === null ? 'void' : `${innerBase}${method.returns.nullable ? ' | null' : ''}`;
+          return [
+            `  ${method.name}Store: {`,
+            `    getState(): Promise<${inner}> {`,
+            `      return ipcRenderer.invoke('${ipcStoreMessage(schema, int, method, 'getState')}');`,
+            `    },`,
+            `    getStateSync(): ${inner} {`,
+            `      const response = ipcRenderer.sendSync('${ipcStoreMessage(schema, int, method, 'getStateSync')}');`,
+            `      if (response.error) throw new Error(response.error);`,
+            `      return response.result;`,
+            `    },`,
+            `    onStateChange(fn: (newState: ${inner}) => void): () => void {`,
+            `      const handler = (_e: unknown, newState: ${inner}) => fn(newState);`,
+            `      ipcRenderer.on('${ipcStoreMessage(schema, int, method, 'update')}', handler);`,
+            `      return () => { ipcRenderer.removeListener('${ipcStoreMessage(schema, int, method, 'update')}', handler); };`,
+            `    },`,
             `  },`,
           ].join('\n');
-        }
-        return [
-          `  ${method.name}(${argsString}) {`,
-          `    return ipcRenderer.invoke('${ipcMessage(schema, int, method)}'${method.arguments.length ? ', ' : ''}${method.arguments.map((arg) => arg.name).join(', ')});`,
-          '  },',
-        ].join('\n');
-      }),
-      // Store implementations
-      ...int.methods.filter((method) => methodTagInfo(method).store).map((method) => {
-        const innerBase = method.returns ? getTSForIdentifier(method.returns.type) : 'void';
-        const inner = method.returns === null ? 'void' : `${innerBase}${method.returns.nullable ? ' | null' : ''}`;
-        return [
-          `  ${method.name}Store: {`,
-          `    getState(): Promise<${inner}> {`,
-          `      return ipcRenderer.invoke('${ipcStoreMessage(schema, int, method, 'getState')}');`,
-          `    },`,
-          `    getStateSync(): ${inner} {`,
-          `      const response = ipcRenderer.sendSync('${ipcStoreMessage(schema, int, method, 'getStateSync')}');`,
-          `      if (response.error) throw new Error(response.error);`,
-          `      return response.result;`,
-          `    },`,
-          `    onStateChange(fn: (newState: ${inner}) => void): () => void {`,
-          `      const handler = (_e: unknown, newState: ${inner}) => fn(newState);`,
-          `      ipcRenderer.on('${ipcStoreMessage(schema, int, method, 'update')}', handler);`,
-          `      return () => { ipcRenderer.removeListener('${ipcStoreMessage(schema, int, method, 'update')}', handler); };`,
-          `    },`,
-          `  },`,
-        ].join('\n');
-      }),
+        }),
       `}`,
       ...(intInfo.autoContextBridge
         ? [

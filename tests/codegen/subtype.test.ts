@@ -202,7 +202,7 @@ subtype BadNumber = number(
     minLength: 3
     maxLength: 20
 )`,
-        'CreateUser(name: Username) -> string'
+        'CreateUser(name: Username) -> string',
       );
       const wiring = await generateWiringFromString(schema);
       // Browser should validate the argument
@@ -214,7 +214,7 @@ subtype BadNumber = number(
         `subtype UserId = string(
     minLength: 10
 )`,
-        'GetUserId() -> UserId'
+        'GetUserId() -> UserId',
       );
       const wiring = await generateWiringFromString(schema);
       // Browser should validate the return value

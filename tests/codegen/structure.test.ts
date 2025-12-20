@@ -153,7 +153,7 @@ structure User {
     age: number
 }`);
       const wiring = await generateWiringFromString(schema);
-      expect(wiring.commonRuntime.internal).toContain("typeof");
+      expect(wiring.commonRuntime.internal).toContain('typeof');
       expect(wiring.commonRuntime.internal).toContain("'string'");
       expect(wiring.commonRuntime.internal).toContain("'number'");
     });
@@ -188,7 +188,7 @@ structure User {
     name: string
     email: string
 }`,
-        'CreateUser(input: UserInput) -> string'
+        'CreateUser(input: UserInput) -> string',
       );
       const wiring = await generateWiringFromString(schema);
       expect(wiring.browser.internal).toContain('$eipc_validator$_UserInput');
@@ -200,7 +200,7 @@ structure User {
     id: string
     name: string
 }`,
-        'GetUser() -> User'
+        'GetUser() -> User',
       );
       const wiring = await generateWiringFromString(schema);
       expect(wiring.browser.internal).toContain('$eipc_validator$_User(result)');

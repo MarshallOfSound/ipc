@@ -11,7 +11,7 @@ export type ZodReference = {
   file: StringValue;
   typeName: StringValue;
   schemaName: StringValue;
-}
+};
 /** End Zod Reference */
 
 /** Begin Validator */
@@ -22,14 +22,14 @@ export type Validator = {
 };
 
 export type MultiValidator = {
-  type: 'ValidatorStructure',
+  type: 'ValidatorStructure';
   validators: NamedValidator[];
-}
+};
 
 export type NamedValidator = {
   name: string;
   grammar: ValidatorGrammar;
-}
+};
 
 export type ValidatorGrammar = ValidatorAndCondition | ValidatorOrCondition;
 
@@ -101,23 +101,23 @@ export type KeyValueMap = {
   type: 'KeyValueBlock';
   key: 'string';
   value: Identifier | Array | IdentifierIDX | InlineStructure | KeyValueMap;
-}
+};
 
 export type Identifier = {
   type: 'Identifier';
   name: string;
-}
+};
 
 export type IdentifierIDX = {
-  type: 'IdentifierIDX',
+  type: 'IdentifierIDX';
   name: string;
   idxKey: Identifier;
-}
+};
 
 export type Array = {
-  type: 'Array',
+  type: 'Array';
   name: string;
-}
+};
 
 export type StructureProperty = {
   key: string;

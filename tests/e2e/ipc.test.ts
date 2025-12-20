@@ -5,7 +5,7 @@ let app: TestApp;
 let electronApp: ElectronApplication;
 let page: Page;
 
-test.beforeEach(async ({ }, testInfo) => {
+test.beforeEach(async ({}, testInfo) => {
   const useSandbox = testInfo.project.name === 'sandbox-on';
   app = await launchTestApp({ sandbox: useSandbox });
   electronApp = app.electronApp;
@@ -81,9 +81,12 @@ test.describe('React Hooks', () => {
     await page.waitForSelector('#state');
 
     // Give it a moment for the async state to settle
-    await page.waitForFunction(() => {
-      return (window as any).__STORE_STATE__?.state === 'ready';
-    }, { timeout: 5000 });
+    await page.waitForFunction(
+      () => {
+        return (window as any).__STORE_STATE__?.state === 'ready';
+      },
+      { timeout: 5000 },
+    );
 
     const state = await page.evaluate(() => (window as any).__STORE_STATE__);
     expect(state.state).toBe('ready');
@@ -91,9 +94,12 @@ test.describe('React Hooks', () => {
   });
 
   test('hook displays initial value in DOM', async () => {
-    await page.waitForFunction(() => {
-      return (window as any).__STORE_STATE__?.state === 'ready';
-    }, { timeout: 5000 });
+    await page.waitForFunction(
+      () => {
+        return (window as any).__STORE_STATE__?.state === 'ready';
+      },
+      { timeout: 5000 },
+    );
 
     const value = await page.textContent('#value');
     expect(value).toBe('0');
@@ -108,9 +114,12 @@ test.describe('React Hooks', () => {
     });
 
     // Wait for the update to propagate
-    await page.waitForFunction(() => {
-      return (window as any).__STORE_STATE__?.result === 999;
-    }, { timeout: 5000 });
+    await page.waitForFunction(
+      () => {
+        return (window as any).__STORE_STATE__?.result === 999;
+      },
+      { timeout: 5000 },
+    );
 
     const state = await page.evaluate(() => (window as any).__STORE_STATE__);
     expect(state.state).toBe('ready');

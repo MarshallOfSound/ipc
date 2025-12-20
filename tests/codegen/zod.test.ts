@@ -40,7 +40,7 @@ zod_reference UserId {
 }`);
       const wiring = await generateWiringFromString(schema);
       // Should import the schema in runtime
-      expect(wiring.commonRuntime.internal).toContain("userIdSchema");
+      expect(wiring.commonRuntime.internal).toContain('userIdSchema');
     });
 
     it('generates validator function using safeParse', async () => {
@@ -87,7 +87,7 @@ zod_reference Email {
     type = "UserIdType"
     schema = "userIdSchema"
 }`,
-        'GetUser(id: UserId) -> string'
+        'GetUser(id: UserId) -> string',
       );
       const wiring = await generateWiringFromString(schema);
       expect(wiring.browser.internal).toContain('$eipc_validator$_UserId');
@@ -100,7 +100,7 @@ zod_reference Email {
     type = "UserIdType"
     schema = "userIdSchema"
 }`,
-        'CreateUser() -> UserId'
+        'CreateUser() -> UserId',
       );
       const wiring = await generateWiringFromString(schema);
       expect(wiring.browser.internal).toContain('$eipc_validator$_UserId(result)');

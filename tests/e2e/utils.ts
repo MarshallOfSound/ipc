@@ -13,12 +13,14 @@ export interface TestApp {
  * 2. DOM to be loaded
  * 3. The IPC APIs to be exposed on window
  */
-export async function launchTestApp(options: {
-  sandbox: boolean;
-  loadUrl?: string;
-}): Promise<TestApp> {
+export async function launchTestApp(options: { sandbox: boolean; loadUrl?: string }): Promise<TestApp> {
+  const isLinuxCI = process.env.CI && process.platform === 'linux';
   const electronApp = await electron.launch({
-    args: [path.join(__dirname, 'test-app/dist/main.js')],
+    args: [
+      path.join(__dirname, 'test-app/dist/main.js'),
+      // Required for running on Linux CI (GitHub Actions)
+      ...(isLinuxCI ? ['--no-sandbox', '--disable-gpu'] : []),
+    ],
     env: {
       ...process.env,
       SANDBOX: options.sandbox ? 'true' : 'false',
@@ -34,10 +36,7 @@ export async function launchTestApp(options: {
 
   // Wait for the IPC API to be exposed on window
   // This ensures the preload script has fully executed
-  await page.waitForFunction(
-    () => (window as any)['e2e.test']?.['TestAPI'] !== undefined,
-    { timeout: 10000 }
-  );
+  await page.waitForFunction(() => (window as any)['e2e.test']?.['TestAPI'] !== undefined, { timeout: 10000 });
 
   return { electronApp, page };
 }

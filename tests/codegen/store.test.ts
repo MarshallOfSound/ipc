@@ -3,7 +3,11 @@ import { generateWiringFromString } from '../helpers';
 
 const baseSchema = (methods: string) => {
   // Trim leading whitespace from methods to match expected indentation
-  const trimmedMethods = methods.trim().split('\n').map(line => `    ${line.trim()}`).join('\n');
+  const trimmedMethods = methods
+    .trim()
+    .split('\n')
+    .map((line) => `    ${line.trim()}`)
+    .join('\n');
   return `module teststore
 
 validator Always = AND(
@@ -25,9 +29,7 @@ describe('Store codegen', () => {
     [Store]
     myStore(arg: string) -> string
 `);
-      await expect(generateWiringFromString(schema)).rejects.toThrow(
-        'tagged with [Store] but has arguments'
-      );
+      await expect(generateWiringFromString(schema)).rejects.toThrow('tagged with [Store] but has arguments');
     });
 
     it('rejects stores without return type', async () => {
@@ -35,9 +37,7 @@ describe('Store codegen', () => {
     [Store]
     myStore()
 `);
-      await expect(generateWiringFromString(schema)).rejects.toThrow(
-        'tagged with [Store] but has no return type'
-      );
+      await expect(generateWiringFromString(schema)).rejects.toThrow('tagged with [Store] but has no return type');
     });
 
     it('rejects stores combined with other tags', async () => {
@@ -46,9 +46,7 @@ describe('Store codegen', () => {
     [Sync]
     myStore() -> string
 `);
-      await expect(generateWiringFromString(schema)).rejects.toThrow(
-        'tagged with [Store] but is also tagged with incompatible tags'
-      );
+      await expect(generateWiringFromString(schema)).rejects.toThrow('tagged with [Store] but is also tagged with incompatible tags');
     });
   });
 
@@ -59,9 +57,7 @@ describe('Store codegen', () => {
     counter() -> number
 `);
       const wiring = await generateWiringFromString(schema);
-      expect(wiring.common.internal).toContain(
-        'getInitialCounterState(): Promise<number> | number;'
-      );
+      expect(wiring.common.internal).toContain('getInitialCounterState(): Promise<number> | number;');
     });
 
     it('generates updateStore in dispatcher', async () => {

@@ -5,7 +5,7 @@ let app: TestApp;
 let electronApp: ElectronApplication;
 let page: Page;
 
-test.beforeEach(async ({ }, testInfo) => {
+test.beforeEach(async ({}, testInfo) => {
   const useSandbox = testInfo.project.name === 'sandbox-on';
   app = await launchTestApp({ sandbox: useSandbox });
   electronApp = app.electronApp;
@@ -34,9 +34,12 @@ test.describe('Event Dispatching', () => {
     });
 
     // Wait for event to arrive
-    await page.waitForFunction(() => {
-      return (window as any).__EVENT_RECEIVED__.length > 0;
-    }, { timeout: 5000 });
+    await page.waitForFunction(
+      () => {
+        return (window as any).__EVENT_RECEIVED__.length > 0;
+      },
+      { timeout: 5000 },
+    );
 
     const events = await page.evaluate(() => (window as any).__EVENT_RECEIVED__);
     expect(events).toContain('hello-from-main');
@@ -58,9 +61,12 @@ test.describe('Event Dispatching', () => {
       (global as any).dispatchValueChanged('event-3');
     });
 
-    await page.waitForFunction(() => {
-      return (window as any).__EVENT_RECEIVED__.length >= 3;
-    }, { timeout: 5000 });
+    await page.waitForFunction(
+      () => {
+        return (window as any).__EVENT_RECEIVED__.length >= 3;
+      },
+      { timeout: 5000 },
+    );
 
     const events = await page.evaluate(() => (window as any).__EVENT_RECEIVED__);
     expect(events).toEqual(['event-1', 'event-2', 'event-3']);
@@ -183,6 +189,80 @@ test.describe('Subtype Validation', () => {
 // Origin validation tests moved to origin.test.ts
 // They use separate Electron app launches with different initial URLs
 
+test.describe('Zod Reference Validation', () => {
+  test('valid email passes zod validation', async () => {
+    const result = await page.evaluate(async () => {
+      const api = (window as any)['e2e.test']?.['TestAPI'];
+      return await api?.ValidateEmail('test@example.com');
+    });
+    expect(result).toBe(true);
+  });
+
+  test('invalid email fails zod validation', async () => {
+    const result = await page.evaluate(async () => {
+      const api = (window as any)['e2e.test']?.['TestAPI'];
+      try {
+        await api?.ValidateEmail('not-an-email');
+        return { threw: false };
+      } catch (e: any) {
+        return { threw: true, message: e.message };
+      }
+    });
+    expect(result.threw).toBe(true);
+    expect(result.message).toContain('validation');
+  });
+
+  test('valid userId passes zod validation', async () => {
+    const result = await page.evaluate(async () => {
+      const api = (window as any)['e2e.test']?.['TestAPI'];
+      return await api?.ValidateUserId(42);
+    });
+    expect(result).toBe(true);
+  });
+
+  test('negative userId fails zod validation', async () => {
+    const result = await page.evaluate(async () => {
+      const api = (window as any)['e2e.test']?.['TestAPI'];
+      try {
+        await api?.ValidateUserId(-5);
+        return { threw: false };
+      } catch (e: any) {
+        return { threw: true, message: e.message };
+      }
+    });
+    expect(result.threw).toBe(true);
+    expect(result.message).toContain('validation');
+  });
+
+  test('non-integer userId fails zod validation', async () => {
+    const result = await page.evaluate(async () => {
+      const api = (window as any)['e2e.test']?.['TestAPI'];
+      try {
+        await api?.ValidateUserId(3.14);
+        return { threw: false };
+      } catch (e: any) {
+        return { threw: true, message: e.message };
+      }
+    });
+    expect(result.threw).toBe(true);
+    expect(result.message).toContain('validation');
+  });
+
+  test('zero userId fails zod validation (must be positive)', async () => {
+    const result = await page.evaluate(async () => {
+      const api = (window as any)['e2e.test']?.['TestAPI'];
+      try {
+        await api?.ValidateUserId(0);
+        return { threw: false };
+      } catch (e: any) {
+        return { threw: true, message: e.message };
+      }
+    });
+    expect(result.threw).toBe(true);
+    expect(result.message).toContain('validation');
+  });
+});
+
 test.describe('Dynamic Global Validation', () => {
   test('API works when dynamic global is set', async () => {
     // Set the dynamic global
@@ -257,9 +337,9 @@ test.describe('Main Frame Validation (is_main_frame)', () => {
           const iframeWindow = iframe.contentWindow as any;
           resolve({
             // TestAPI uses AllowAll validator - should be available
-            testAPI: !!(iframeWindow?.['e2e.test']?.['TestAPI']),
+            testAPI: !!iframeWindow?.['e2e.test']?.['TestAPI'],
             // MainFrameAPI uses MainFrameOnly validator - should NOT be available
-            mainFrameAPI: !!(iframeWindow?.['e2e.test']?.['MainFrameAPI']),
+            mainFrameAPI: !!iframeWindow?.['e2e.test']?.['MainFrameAPI'],
           });
         };
         document.getElementById('iframe-container')?.appendChild(iframe);

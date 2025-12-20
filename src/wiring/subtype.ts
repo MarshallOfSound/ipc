@@ -57,7 +57,9 @@ export function wireSubType(subType: SubType, controller: Controller, schema: Sc
   const subTypeDeclaration = [`export type ${subType.name} = ${subType.parent};`];
 
   const parentValidator = basePrimitives.includes(subType.parent)
-    ? subType.parent === 'unknown' ? [] : [`if (typeof value !== '${subType.parent}') return false;`]
+    ? subType.parent === 'unknown'
+      ? []
+      : [`if (typeof value !== '${subType.parent}') return false;`]
     : [`if (!${validator(subType.parent)}(value)) return false;`];
 
   let basePrimitive = subType.name;
