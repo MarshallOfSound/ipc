@@ -7,7 +7,8 @@ let page: Page;
 
 test.beforeEach(async ({}, testInfo) => {
   const useSandbox = testInfo.project.name === 'sandbox-on';
-  app = await launchTestApp({ sandbox: useSandbox });
+  const useCjs = testInfo.project.name === 'sandbox-off-cjs';
+  app = await launchTestApp({ sandbox: useSandbox, useCjs });
   electronApp = app.electronApp;
   page = app.page;
 });

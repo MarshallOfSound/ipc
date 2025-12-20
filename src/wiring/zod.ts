@@ -1,17 +1,33 @@
-import { Controller } from '../controller';
-import { ZodReference } from '../schema-type';
-import { validator } from './_constants';
+import { Controller } from '../controller.js';
+import type { ZodReference } from '../language/generated/ast.js';
+import { validator } from './_constants.js';
 
-export const wireZod = (zod: ZodReference, controller: Controller) => {
-  controller.addCommonCode([`import type { ${zod.typeName.value} } from "${zod.file.value}";`, `export { ${zod.typeName.value} };`].join('\n'));
+// Helper to strip quotes from STRING tokens
+const stripQuotes = (s: string) => s.replace(/^"|"$/g, '');
+
+// Helper to ensure import path has .js extension for ESM compatibility
+const ensureJsExtension = (importPath: string): string => {
+  // Skip if it's a package import (no relative path)
+  if (!importPath.startsWith('.') && !importPath.startsWith('/')) {
+    return importPath;
+  }
+  // Skip if it already has an extension
+  if (/\.[a-zA-Z]+$/.test(importPath)) {
+    return importPath;
+  }
+  // Add .js extension
+  return `${importPath}.js`;
+};
+
+export const wireZodReference = (zod: ZodReference, controller: Controller) => {
+  const file = ensureJsExtension(stripQuotes(zod.file));
+  const typeName = stripQuotes(zod.typeName);
+  const schemaName = stripQuotes(zod.schemaName);
+
+  controller.addCommonCode([`import type { ${typeName} } from "${file}";`, `export { ${typeName} };`].join('\n'));
   controller.addCommonRuntimeCode(
-    [
-      `import { ${zod.schemaName.value} } from "${zod.file.value}";`,
-      `export function ${validator(zod.name)}(value: unknown) {`,
-      `  return ${zod.schemaName.value}.safeParse(value).success;`,
-      `}`,
-    ].join('\n'),
+    [`import { ${schemaName} } from "${file}";`, `export function ${validator(zod.name)}(value: unknown) {`, `  return ${schemaName}.safeParse(value).success;`, `}`].join('\n'),
   );
-  controller.addCommonExport(zod.typeName.value);
+  controller.addCommonExport(typeName);
   controller.addCommonRuntimeExport(validator(zod.name));
 };

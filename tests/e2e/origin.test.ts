@@ -5,8 +5,10 @@ import { launchTestApp, closeTestApp, TestApp } from './utils';
 // They use separate Electron app launches with different initial URLs
 
 test.describe('Origin Validation', () => {
-  test('OriginRestrictedAPI is NOT available from file:// origin', async () => {
-    const app = await launchTestApp({ sandbox: false, loadUrl: 'file' });
+  test('OriginRestrictedAPI is NOT available from file:// origin', async ({}, testInfo) => {
+    const useSandbox = testInfo.project.name === 'sandbox-on';
+    const useCjs = testInfo.project.name === 'sandbox-off-cjs';
+    const app = await launchTestApp({ sandbox: useSandbox, useCjs, loadUrl: 'file' });
 
     try {
       // The OriginRestrictedAPI should NOT be available since we're loading from file://
@@ -22,8 +24,10 @@ test.describe('Origin Validation', () => {
     }
   });
 
-  test('OriginRestrictedAPI IS available from app://test origin', async () => {
-    const app = await launchTestApp({ sandbox: false, loadUrl: 'app://test' });
+  test('OriginRestrictedAPI IS available from app://test origin', async ({}, testInfo) => {
+    const useSandbox = testInfo.project.name === 'sandbox-on';
+    const useCjs = testInfo.project.name === 'sandbox-off-cjs';
+    const app = await launchTestApp({ sandbox: useSandbox, useCjs, loadUrl: 'app://test' });
 
     try {
       // Verify we're on the right origin
@@ -54,8 +58,10 @@ test.describe('Origin Validation', () => {
     }
   });
 
-  test('OriginRestrictedAPI is NOT available from app://other origin', async () => {
-    const app = await launchTestApp({ sandbox: false, loadUrl: 'app://other' });
+  test('OriginRestrictedAPI is NOT available from app://other origin', async ({}, testInfo) => {
+    const useSandbox = testInfo.project.name === 'sandbox-on';
+    const useCjs = testInfo.project.name === 'sandbox-off-cjs';
+    const app = await launchTestApp({ sandbox: useSandbox, useCjs, loadUrl: 'app://other' });
 
     try {
       // The OriginRestrictedAPI should NOT be available since we're loading from app://other

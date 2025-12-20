@@ -1,22 +1,17 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
-    "target": "es2017",
-    "lib": [
-      "es2017"
-    ],
+    "module": "Node16",
+    "target": "ES2022",
+    "lib": ["ES2022"],
     "sourceMap": true,
     "strict": true,
-    "outDir": "dist/cjs",
-    "types": [
-      "node"
-    ],
+    "outDir": "dist",
+    "types": ["node"],
     "allowSyntheticDefaultImports": true,
-    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "moduleResolution": "Node16",
     "declaration": true,
-    "incremental": true
+    "skipLibCheck": true
   },
-  "include": [
-    "src"
-  ]
+  "include": ["src"]
 }

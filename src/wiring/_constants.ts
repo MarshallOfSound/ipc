@@ -1,4 +1,4 @@
-import { Interface, InterfaceMethod, Schema } from '../schema-type';
+import type { Interface, Method, Module } from '../language/generated/ast.js';
 
 export const INLINE_STRUCTURE_JOINER = '_$inline$_';
 export const INTERFACE_IMPL_PREFIX = '$eipc_impl$_';
@@ -11,9 +11,9 @@ export const EVENT_VALIDATOR_PREFIX = '$eipc_event_validator$_';
 // interface file)
 export const IPC_MESSAGE_PREFIX = `$eipc_message$_${crypto.randomUUID()}_$_`;
 
-export const ipcMessage = (schema: Schema, int: Interface, method: InterfaceMethod) => `${IPC_MESSAGE_PREFIX}${schema.name}_$_${int.name}_$_${method.name}`;
-export const ipcStoreMessage = (schema: Schema, int: Interface, method: InterfaceMethod, suffix: 'getState' | 'getStateSync' | 'update') =>
-  `${IPC_MESSAGE_PREFIX}${schema.name}_$_${int.name}_$_${method.name}_$store$_${suffix}`;
+export const ipcMessage = (module: Module, int: Interface, method: Method) => `${IPC_MESSAGE_PREFIX}${module.name}_$_${int.name}_$_${method.name}`;
+export const ipcStoreMessage = (module: Module, int: Interface, method: Method, suffix: 'getState' | 'getStateSync' | 'update') =>
+  `${IPC_MESSAGE_PREFIX}${module.name}_$_${int.name}_$_${method.name}_$store$_${suffix}`;
 export const validator = (symbolName: string) => `${VALIDATOR_PREFIX}${symbolName}`;
 export const eventValidator = (validatorName: string) => `${EVENT_VALIDATOR_PREFIX}${validatorName}`;
 

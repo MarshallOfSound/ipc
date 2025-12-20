@@ -1,14 +1,12 @@
-import { Array, Identifier, IdentifierIDX, MethodArgument } from '../schema-type';
+import type { Argument, TypeReference } from '../language/generated/ast.js';
 
-export const getTSForIdentifier = (ident: MethodArgument | Identifier | Array | IdentifierIDX): string => {
-  switch (ident.type) {
-    case 'Argument':
-      return `${getTSForIdentifier(ident.argType)}`;
-    case 'Array':
-      return `${ident.name}[]`;
-    case 'Identifier':
-      return ident.name;
-    case 'IdentifierIDX':
-      return `${ident.name}[${getTSForIdentifier(ident.idxKey)}]`;
+export const getTSForTypeReference = (type: TypeReference): string => {
+  if (type.array) {
+    return `${type.reference}[]`;
   }
+  return type.reference;
+};
+
+export const getTSForArgument = (arg: Argument): string => {
+  return getTSForTypeReference(arg.type);
 };
