@@ -36,6 +36,16 @@ validator RequiresDynamicGlobal = AND(
     dynamic_global(testGlobalFlag)
 )
 
+validator NotAboutBlank = AND(
+    is_packaged is false
+    is_about_blank is false
+)
+
+validator OnlyAboutBlank = AND(
+    is_packaged is false
+    is_about_blank is true
+)
+
 subtype Username = string(
     minLength: 3
     maxLength: 20
@@ -93,4 +103,18 @@ interface OriginRestrictedAPI {
 [ContextBridge]
 interface DynamicGlobalAPI {
     DynamicGlobalMethod() -> string
+}
+
+[RendererAPI]
+[Validator=NotAboutBlank]
+[ContextBridge]
+interface NotAboutBlankAPI {
+    NotAboutBlankMethod() -> string
+}
+
+[RendererAPI]
+[Validator=OnlyAboutBlank]
+[ContextBridge]
+interface OnlyAboutBlankAPI {
+    OnlyAboutBlankMethod() -> string
 }

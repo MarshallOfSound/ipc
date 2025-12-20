@@ -1,7 +1,7 @@
 import { app, BrowserWindow, protocol, session } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
-import { TestAPI, MainFrameAPI, OriginRestrictedAPI, DynamicGlobalAPI } from './ipc/browser/e2e.test';
+import { TestAPI, MainFrameAPI, OriginRestrictedAPI, DynamicGlobalAPI, NotAboutBlankAPI, OnlyAboutBlankAPI } from './ipc/browser/e2e.test';
 
 let counterValue = 0;
 let mainWindow: BrowserWindow | null = null;
@@ -99,6 +99,18 @@ app.whenReady().then(async () => {
     DynamicGlobalAPI.for(frame).setImplementation({
       DynamicGlobalMethod() {
         return 'dynamic-global-success';
+      },
+    });
+
+    NotAboutBlankAPI.for(frame).setImplementation({
+      NotAboutBlankMethod() {
+        return 'not-about-blank-success';
+      },
+    });
+
+    OnlyAboutBlankAPI.for(frame).setImplementation({
+      OnlyAboutBlankMethod() {
+        return 'only-about-blank-success';
       },
     });
   };
