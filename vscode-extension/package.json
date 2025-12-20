@@ -3,11 +3,11 @@
   "displayName": "EIPC Language Support",
   "description": "Language support for Electron IPC schema files (.eipc)",
   "version": "0.0.1",
-  "publisher": "marshallofsound",
+  "publisher": "MarshallOfSound",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/anthropic/electron-ipc"
+    "url": "https://github.com/MarshallOfSound/ipc"
   },
   "engines": {
     "vscode": "^1.80.0"
