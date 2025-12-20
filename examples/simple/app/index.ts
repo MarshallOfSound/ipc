@@ -32,5 +32,8 @@ app.whenReady().then(() => {
     async GetOptionalNumber() {
       return 42;
     },
+    getInitialBlahState() {
+      return 'initial-blah-state';
+    },
   });
 });

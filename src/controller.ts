@@ -11,4 +11,6 @@ export type Controller = {
   addPreloadImport: (code: string) => void;
   addPreloadBridgeInitializer: (name: string) => void;
   addPreloadBridgeKeyAndType: (module: string, key: string, type: string) => void;
+  addRendererHooksCode: (code: string) => void;
+  addRendererHooksExport: (name: string) => void;
 };

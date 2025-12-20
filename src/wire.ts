@@ -17,6 +17,7 @@ type Wiring = {
   browser: SplitWiring;
   preload: SplitWiring;
   renderer: SplitWiring;
+  rendererHooks: SplitWiring;
   common: SplitWiring;
   commonRuntime: SplitWiring;
 };
@@ -24,7 +25,12 @@ type Wiring = {
 export function buildWiring(schema: Schema): Wiring {
   let browser = `import { app as $$app$$ } from 'electron';\nexport * from '../common/${schema.name}';\n`;
   let preload = `import { contextBridge, ipcRenderer } from 'electron';\nexport * from '../common/${schema.name}';\n`;
-  let common = '';
+  let common = `export interface IPCStore<T> {
+  getState(): Promise<T>;
+  getStateSync(): T;
+  onStateChange(fn: (newState: T) => void): () => void;
+}
+`;
   let commonRuntime = '';
 
   const buildExternal = (type: string, exports: string[]) => {
@@ -45,12 +51,14 @@ export function buildWiring(schema: Schema): Wiring {
   };
 
   const publicBrowserExports: string[] = [];
-  const publicCommonExports: string[] = [];
+  const publicCommonExports: string[] = ['IPCStore'];
   const publicPreloadExports: string[] = [];
-  const commonExports: string[] = [];
+  const commonExports: string[] = ['IPCStore'];
   const commonRuntimeExports: string[] = [];
   const rendererBridgeInitializers: string[] = [];
   const rendererBridges: [string, string, string][] = [];
+  const rendererHooksExports: string[] = [];
+  let rendererHooks = `import { useState, useEffect } from 'react';\n`;
 
   const controller: Controller = {
     addPublicBrowserExport: (name: string) => {
@@ -94,6 +102,12 @@ export function buildWiring(schema: Schema): Wiring {
     },
     addPreloadBridgeInitializer: (name: string) => {
       rendererBridgeInitializers.push(name);
+    },
+    addRendererHooksCode: (code: string) => {
+      rendererHooks += code + '\n';
+    },
+    addRendererHooksExport: (name: string) => {
+      rendererHooksExports.push(name);
     },
   };
 
@@ -219,6 +233,11 @@ export function buildWiring(schema: Schema): Wiring {
     })
     .join('\n');
 
+  const buildHooksExternal = () => {
+    if (rendererHooksExports.length === 0) return '';
+    return `export { ${rendererHooksExports.join(', ')} } from '../_internal/renderer-hooks/${schema.name}';`;
+  };
+
   return {
     browser: {
       internal: browser,
@@ -231,6 +250,10 @@ export function buildWiring(schema: Schema): Wiring {
     renderer: {
       internal: '',
       external: renderer,
+    },
+    rendererHooks: {
+      internal: rendererHooksExports.length > 0 ? rendererHooks : '',
+      external: buildHooksExternal(),
     },
     common: {
       internal: common,
