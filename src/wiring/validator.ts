@@ -1,6 +1,15 @@
-import { Controller } from '../controller';
-import { Validator, ValidatorGrammar, ValidatorNestedCondition } from '../schema-type';
-import { eventValidator } from './_constants';
+import { Controller } from '../controller.js';
+import type {
+  Validator,
+  ValidatorGrammar,
+  ValidatorStatement,
+  ValidatorAnd,
+  ValidatorOr,
+  ValidatorIs,
+  ValidatorStartsWith,
+  ValidatorDynamicGlobal,
+} from '../language/generated/ast.js';
+import { eventValidator } from './_constants.js';
 
 type VariableType = 'Boolean' | 'String';
 const variables: Record<
@@ -55,31 +64,25 @@ interface ConditionFlags {
   depends_on_url: boolean;
 }
 
-interface ConditionGrammar extends ConditionFlags {
-  grammar: string;
-}
-
 function buildGrammar(grammar: ValidatorGrammar, process: 'browser' | 'renderer', flags: ConditionFlags): string {
-  switch (grammar.operation) {
-    case 'And': {
+  switch (grammar.$type) {
+    case 'ValidatorAnd': {
       return `(${grammar.conditions.map((condition) => buildCondition(condition, process, flags)).join(' && ')})`;
     }
-    case 'Or': {
+    case 'ValidatorOr': {
       return `(${grammar.conditions.map((condition) => buildCondition(condition, process, flags)).join(' || ')})`;
     }
   }
 }
 
-function buildCondition(condition: ValidatorNestedCondition, process: 'browser' | 'renderer', flags: ConditionFlags): string {
-  switch (condition.operation) {
-    case 'And': {
+function buildCondition(condition: ValidatorStatement, process: 'browser' | 'renderer', flags: ConditionFlags): string {
+  switch (condition.$type) {
+    case 'ValidatorAnd':
+    case 'ValidatorOr': {
       return buildGrammar(condition, process, flags);
     }
-    case 'Or': {
-      return buildGrammar(condition, process, flags);
-    }
-    case 'Is': {
-      const { subject, target } = condition;
+    case 'ValidatorIs': {
+      const { subject, value } = condition;
       if (!Object.prototype.hasOwnProperty.call(variables, subject)) {
         throw new Error(`Unsupported variable "${subject}" in conditional`);
       }
@@ -91,8 +94,9 @@ function buildCondition(condition: ValidatorNestedCondition, process: 'browser' 
         flags.renderer_depends_on_web_frame = true;
       }
 
-      if (info.type !== target.type) {
-        throw new Error(`Variable "${subject}" of type "${info.type}" can not be compared against a literal of type "${target.type}"`);
+      const targetType = value.$type === 'StringValue' ? 'String' : 'Boolean';
+      if (info.type !== targetType) {
+        throw new Error(`Variable "${subject}" of type "${info.type}" can not be compared against a literal of type "${targetType}"`);
       }
 
       if (!info.depends_on_url && info[process] === null) {
@@ -107,9 +111,41 @@ function buildCondition(condition: ValidatorNestedCondition, process: 'browser' 
         expression = info[process] as string;
       }
 
-      return `((${expression}) === ${target.type === 'String' ? JSON.stringify(target.value) : target.value})`;
+      const targetValue = value.$type === 'StringValue' ? JSON.stringify(value.value.replace(/^"|"$/g, '')) : value.value === 'true';
+      return `((${expression}) === ${targetValue})`;
     }
-    case 'DynamicGlobal': {
+    case 'ValidatorStartsWith': {
+      const { subject, value } = condition;
+      if (!Object.prototype.hasOwnProperty.call(variables, subject)) {
+        throw new Error(`Unsupported variable "${subject}" in conditional`);
+      }
+
+      const info = variables[subject];
+      if (info.depends_on_url) {
+        flags.depends_on_url = true;
+      } else if (!info.depends_on_url && info.renderer_depends_on_webframe) {
+        flags.renderer_depends_on_web_frame = true;
+      }
+
+      if (info.type !== 'String') {
+        throw new Error(`Variable "${subject}" of type "${info.type}" cannot use startsWith (requires String)`);
+      }
+
+      if (!info.depends_on_url && info[process] === null) {
+        return `(true)`;
+      }
+
+      let expression: string;
+      if (info.depends_on_url) {
+        expression = info.custom_expression ?? `url.${subject}`;
+      } else {
+        expression = info[process] as string;
+      }
+
+      const cleanValue = value.replace(/^"|"$/g, '');
+      return `((${expression}).startsWith(${JSON.stringify(cleanValue)}))`;
+    }
+    case 'ValidatorDynamicGlobal': {
       const { param } = condition;
       // For renderer checks just expose and then the browser process will nuke the request
       if (process === 'renderer') {
@@ -120,11 +156,11 @@ function buildCondition(condition: ValidatorNestedCondition, process: 'browser' 
   }
 }
 
-export function wireValidator(validator: Validator, controller: Controller): void {
+export function wireValidator(validatorDef: Validator, controller: Controller): void {
   let grammar: ValidatorGrammar;
-  if (validator.grammar.type === 'ValidatorStructure') {
+  if (validatorDef.grammar.$type === 'ValidatorStructure') {
     const validatorToUse = process.env.EIPC_ENV || process.env.NODE_ENV || 'production';
-    const found = validator.grammar.validators.find((v) => v.name === validatorToUse);
+    const found = validatorDef.grammar.options.find((v) => v.name === validatorToUse);
     if (!found) {
       throw new Error(
         `Had an environment dependant validator, but could not find the "${validatorToUse}" definition, either add that definition or set EIPC_ENV or NODE_ENV to the correct environment name`,
@@ -132,13 +168,13 @@ export function wireValidator(validator: Validator, controller: Controller): voi
     }
     grammar = found.grammar;
   } else {
-    grammar = validator.grammar;
+    grammar = validatorDef.grammar;
   }
 
   let dependencies: ConditionFlags = { depends_on_url: false, renderer_depends_on_web_frame: false };
   const browserCondition = buildGrammar(grammar, 'browser', dependencies);
   const browserEventValidator = [
-    `function ${eventValidator(validator.name)}(event: Electron.IpcMainEvent | Electron.IpcMainInvokeEvent) {`,
+    `function ${eventValidator(validatorDef.name)}(event: Electron.IpcMainEvent | Electron.IpcMainInvokeEvent) {`,
     ...(dependencies.depends_on_url
       ? ['  if (!event.senderFrame) return false;', '  let url: URL;', '  try {', '    url = new URL(event.senderFrame.url);', '  } catch {', '    return false;', '  }']
       : []),
@@ -150,7 +186,7 @@ export function wireValidator(validator: Validator, controller: Controller): voi
   dependencies = { depends_on_url: false, renderer_depends_on_web_frame: false };
   const rendererCondition = buildGrammar(grammar, 'renderer', dependencies);
   const rendererExposeValidator = [
-    `function ${eventValidator(validator.name)}() {`,
+    `function ${eventValidator(validatorDef.name)}() {`,
     ...(dependencies.depends_on_url ? ['  let url: URL;', '  try {', '    url = new URL(window.location.href);', '  } catch {', '    return false;', '  }'] : []),
     `  if (${rendererCondition}) return true;`,
     '  return false;',

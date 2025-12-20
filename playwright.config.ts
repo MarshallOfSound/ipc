@@ -3,7 +3,7 @@ import { defineConfig } from '@playwright/test';
 export default defineConfig({
   testDir: './tests/e2e',
   testIgnore: ['**/test-app/**'],
-  timeout: 30000,
+  timeout: 15000,
   projects: [
     {
       name: 'sandbox-off',
@@ -13,6 +13,12 @@ export default defineConfig({
     },
     {
       name: 'sandbox-on',
+      use: {
+        trace: 'on-first-retry',
+      },
+    },
+    {
+      name: 'sandbox-off-cjs',
       use: {
         trace: 'on-first-retry',
       },

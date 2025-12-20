@@ -1,71 +1,57 @@
-import { Controller } from '../controller';
-import { Array, Enum, KeyValueMap, Structure, StructureProperty } from '../schema-type';
-import { basePrimitives, INLINE_STRUCTURE_JOINER, validator } from './_constants';
-import { getTSForIdentifier } from './identifier';
+import { Controller } from '../controller.js';
+import type { KeyValueBlock, PropertyType, Structure, StructureBlock, StructureProperty, TypeReference } from '../language/generated/ast.js';
+import { basePrimitives, INLINE_STRUCTURE_JOINER, validator } from './_constants.js';
+import { getTSForTypeReference } from './identifier.js';
 
-const validatorFnOrPrimitiveValidator = (property: StructureProperty | KeyValueMap, inlineStructureName: string) => {
-  if (property.value.type === 'Identifier') {
-    return validatorFnOrPrimitiveValidatorForType(property.value.name, `value.${property.key}`);
+const validatorFnOrPrimitiveValidator = (type: PropertyType, jsValueName: string, inlineStructureName: string): string => {
+  if (type.$type === 'TypeReference') {
+    return validatorFnOrPrimitiveValidatorForType(type, jsValueName);
   }
-  if (property.value.type === 'Array') {
-    return `(Array.isArray(value.${property.key}) && value.${property.key}.every((v: any) => ${validatorFnOrPrimitiveValidatorForType(property.value.name, 'v')}))`;
-  }
-  if (property.value.type === 'IdentifierIDX') {
-    return `(supgee)`;
-  }
-  return `${validator(inlineStructureName)}(value.${property.key})`;
+  // For inline structures and key-value blocks, use the generated validator
+  return `${validator(inlineStructureName)}(${jsValueName})`;
 };
 
-const validatorFnOrPrimitiveValidatorForType = (type: string, jsValueName: string) => {
-  if (basePrimitives.includes(type)) {
-    if (type === 'unknown') {
-      return 'true';
-    }
-    return `(typeof ${jsValueName} === '${type}')`;
+const validatorFnOrPrimitiveValidatorForType = (type: TypeReference, jsValueName: string): string => {
+  const baseType = type.reference;
+  let baseCheck = basePrimitives.includes(baseType) ? (baseType === 'unknown' ? 'true' : `(typeof ${jsValueName} === '${baseType}')`) : `${validator(baseType)}(${jsValueName})`;
+
+  if (type.array) {
+    baseCheck = `(Array.isArray(${jsValueName}) && ${jsValueName}.every((v: any) => ${validatorFnOrPrimitiveValidatorForType({ ...type, array: false } as TypeReference, 'v')}))`;
   }
-  return `${validator(type)}(${jsValueName})`;
+  return baseCheck;
 };
 
-export function wireKeyValueMap(kvm: KeyValueMap, pseduoName: string, controller: Controller): void {
-  const getInlineStructureName = () => `${pseduoName}${INLINE_STRUCTURE_JOINER}_$MappedValue$_`;
+export function wireKeyValueMap(kvm: KeyValueBlock, pseudoName: string, controller: Controller): void {
+  const getInlineStructureName = () => `${pseudoName}${INLINE_STRUCTURE_JOINER}_$MappedValue$_`;
 
   const inlineStructureName = getInlineStructureName();
   let valueName: string;
-  switch (kvm.value.type) {
-    case 'InlineStructure': {
-      wireStructure(
-        {
-          type: 'Structure',
-          name: inlineStructureName,
-          properties: kvm.value.properties,
-        },
-        controller,
-        false,
-      );
+
+  switch (kvm.type.$type) {
+    case 'StructureBlock': {
+      wireInlineStructure(kvm.type, inlineStructureName, controller);
       valueName = inlineStructureName;
       break;
     }
     case 'KeyValueBlock': {
-      wireKeyValueMap(kvm.value, inlineStructureName, controller);
+      wireKeyValueMap(kvm.type, inlineStructureName, controller);
       valueName = inlineStructureName;
       break;
     }
-    case 'IdentifierIDX':
-    case 'Array':
-    case 'Identifier': {
-      valueName = getTSForIdentifier(kvm.value);
+    case 'TypeReference': {
+      valueName = getTSForTypeReference(kvm.type);
       break;
     }
   }
 
-  const structureDeclaration = [`export type ${pseduoName} = Record<${kvm.key}, ${valueName}>;`];
+  const structureDeclaration = [`export type ${pseudoName} = Record<string, ${valueName}>;`];
 
   const structureValidatorDeclaration = [
-    `export function ${validator(pseduoName)}(value: any): boolean {`,
+    `export function ${validator(pseudoName)}(value: any): boolean {`,
     `  if (!value || typeof value !== 'object') return false;`,
     `  for (const key of Object.keys(value)) {`,
-    `    if (!${validatorFnOrPrimitiveValidatorForType(kvm.key, 'key')}) return false;`,
-    `    if (!${validatorFnOrPrimitiveValidatorForType(valueName, 'value[key]')}) return false`,
+    `    if (typeof key !== 'string') return false;`,
+    `    if (!${kvm.type.$type === 'TypeReference' ? validatorFnOrPrimitiveValidatorForType(kvm.type, 'value[key]') : `${validator(valueName)}(value[key])`}) return false`,
     `  }`,
     `  return true;`,
     `}`,
@@ -73,8 +59,8 @@ export function wireKeyValueMap(kvm: KeyValueMap, pseduoName: string, controller
 
   controller.addCommonCode(structureDeclaration.join('\n'));
   controller.addCommonRuntimeCode(structureValidatorDeclaration.join('\n'));
-  controller.addCommonExport(pseduoName);
-  controller.addCommonRuntimeExport(validator(pseduoName));
+  controller.addCommonExport(pseudoName);
+  controller.addCommonRuntimeExport(validator(pseudoName));
 }
 
 function maybeNullable(s: string, nullable: boolean) {
@@ -84,16 +70,71 @@ function maybeNullable(s: string, nullable: boolean) {
   return s;
 }
 
-export function wireStructure(structure: Structure, controller: Controller, exported = true): void {
-  const getInlineStructureName = (propertyKey: string) => `${structure.name}${INLINE_STRUCTURE_JOINER}${propertyKey}`;
+function getTypeString(type: PropertyType, inlineName: string): string {
+  switch (type.$type) {
+    case 'TypeReference':
+      return getTSForTypeReference(type);
+    case 'StructureBlock':
+    case 'KeyValueBlock':
+      return inlineName;
+  }
+}
+
+function wireInlineStructure(block: StructureBlock, name: string, controller: Controller): void {
+  const getInlineStructureName = (propertyName: string) => `${name}${INLINE_STRUCTURE_JOINER}${propertyName}`;
+
+  const structureDeclaration = [
+    `export interface ${name} {`,
+    ...block.properties.map((property) => {
+      const keyPrefix = `  ${property.name}${property.optional ? '?' : ''}`;
+      const inlineName = getInlineStructureName(property.name);
+      const typeStr = getTypeString(property.type, inlineName);
+      return `${keyPrefix}: ${maybeNullable(typeStr, property.nullable)};`;
+    }),
+    '}',
+  ];
+
+  const structureValidatorDeclaration = [
+    `export function ${validator(name)}(value: any): boolean {`,
+    `  if (!value || typeof value !== 'object') return false;`,
+    ...block.properties.map((property) => {
+      const inlineStructureName = getInlineStructureName(property.name);
+
+      // Wire nested structures
+      if (property.type.$type === 'StructureBlock') {
+        wireInlineStructure(property.type, inlineStructureName, controller);
+      } else if (property.type.$type === 'KeyValueBlock') {
+        wireKeyValueMap(property.type, inlineStructureName, controller);
+      }
+
+      return [
+        '',
+        `  // ${name}.${property.name}`,
+        ...(property.optional ? [`  if (typeof value.${property.name} !== 'undefined') {`] : []),
+        `  ${property.optional ? '  ' : ''}if (${property.nullable ? `value.${property.name} !== null && ` : ''}!${validatorFnOrPrimitiveValidator(property.type, `value.${property.name}`, inlineStructureName)}) return false;`,
+        ...(property.optional ? [`  }`] : []),
+      ].join('\n');
+    }),
+    `  return true;`,
+    `}`,
+  ];
+
+  controller.addCommonCode(structureDeclaration.join('\n'));
+  controller.addCommonRuntimeCode(structureValidatorDeclaration.join('\n'));
+  controller.addCommonExport(name);
+  controller.addCommonRuntimeExport(validator(name));
+}
+
+export function wireStructure(structure: Structure, allowedTypes: Set<string>, controller: Controller): void {
+  const getInlineStructureName = (propertyName: string) => `${structure.name}${INLINE_STRUCTURE_JOINER}${propertyName}`;
+
   const structureDeclaration = [
     `export interface ${structure.name} {`,
-    ...structure.properties.map((property) => {
-      const keyPrefix = `  ${property.key}${property.optional ? '?' : ''}`;
-      if (property.value.type === 'Identifier' || property.value.type === 'IdentifierIDX' || property.value.type === 'Array') {
-        return `${keyPrefix}: ${maybeNullable(getTSForIdentifier(property.value), property.nullable)};`;
-      }
-      return `${keyPrefix}: ${maybeNullable(getInlineStructureName(property.key), property.nullable)};`;
+    ...structure.block.properties.map((property) => {
+      const keyPrefix = `  ${property.name}${property.optional ? '?' : ''}`;
+      const inlineName = getInlineStructureName(property.name);
+      const typeStr = getTypeString(property.type, inlineName);
+      return `${keyPrefix}: ${maybeNullable(typeStr, property.nullable)};`;
     }),
     '}',
   ];
@@ -101,37 +142,30 @@ export function wireStructure(structure: Structure, controller: Controller, expo
   const structureValidatorDeclaration = [
     `export function ${validator(structure.name)}(value: any): boolean {`,
     `  if (!value || typeof value !== 'object') return false;`,
-    ...structure.properties.map((property) => {
-      const inlineStructureName = getInlineStructureName(property.key);
+    ...structure.block.properties.map((property) => {
+      const inlineStructureName = getInlineStructureName(property.name);
 
-      if (property.value.type === 'InlineStructure') {
-        wireStructure(
-          {
-            type: 'Structure',
-            name: inlineStructureName,
-            properties: property.value.properties,
-          },
-          controller,
-          false,
-        );
-      } else if (property.value.type === 'KeyValueBlock') {
-        wireKeyValueMap(property.value, inlineStructureName, controller);
+      // Wire nested structures
+      if (property.type.$type === 'StructureBlock') {
+        wireInlineStructure(property.type, inlineStructureName, controller);
+      } else if (property.type.$type === 'KeyValueBlock') {
+        wireKeyValueMap(property.type, inlineStructureName, controller);
       }
 
       return [
         '',
-        `  // ${structure.name}.${property.key}`,
-        ...(property.optional ? [`  if (typeof value.${property.key} !== 'undefined') {`] : []),
-        `  ${property.optional ? '  ' : ''}if (${property.nullable ? `value.${property.key} !== null && ` : ''}!${validatorFnOrPrimitiveValidator(property, inlineStructureName)}) return false;`,
+        `  // ${structure.name}.${property.name}`,
+        ...(property.optional ? [`  if (typeof value.${property.name} !== 'undefined') {`] : []),
+        `  ${property.optional ? '  ' : ''}if (${property.nullable ? `value.${property.name} !== null && ` : ''}!${validatorFnOrPrimitiveValidator(property.type, `value.${property.name}`, inlineStructureName)}) return false;`,
         ...(property.optional ? [`  }`] : []),
       ].join('\n');
     }),
     `  return true;`,
     `}`,
   ];
+
   controller.addCommonCode(structureDeclaration.join('\n'));
   controller.addCommonRuntimeCode(structureValidatorDeclaration.join('\n'));
   controller.addCommonExport(structure.name);
   controller.addCommonRuntimeExport(validator(structure.name));
-  if (exported) controller.addPublicCommonExport(structure.name);
 }

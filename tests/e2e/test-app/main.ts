@@ -1,15 +1,21 @@
 import { app, BrowserWindow, protocol, session } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
-import { TestAPI, MainFrameAPI, OriginRestrictedAPI, DynamicGlobalAPI, NotAboutBlankAPI, OnlyAboutBlankAPI } from './ipc/browser/e2e.test';
+import { fileURLToPath } from 'url';
+import { TestAPI, MainFrameAPI, OriginRestrictedAPI, DynamicGlobalAPI, NotAboutBlankAPI, OnlyAboutBlankAPI } from './ipc/browser/e2e.test.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 let counterValue = 0;
 let mainWindow: BrowserWindow | null = null;
 let currentDispatcher: ReturnType<ReturnType<(typeof TestAPI)['for']>['setImplementation']> | null = null;
 
-// Use SANDBOX=true to test with sandbox enabled (requires bundled preload)
+// SANDBOX=true requires CJS preload, SANDBOX=false can use ESM or CJS
+// USE_CJS=true forces CJS preload even with sandbox disabled
 const useSandbox = process.env.SANDBOX === 'true';
-const preloadScript = useSandbox ? 'preload-bundled.js' : 'preload.js';
+const useCjs = process.env.USE_CJS === 'true';
+const preloadScript = useSandbox || useCjs ? 'preload-bundled.cjs' : 'preload.mjs';
 
 // Hide windows unless DEBUG_E2E_TEST=1
 const showWindow = process.env.DEBUG_E2E_TEST === '1';

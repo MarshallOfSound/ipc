@@ -94,6 +94,54 @@ FileSystem.for(mainWindow.webContents.mainFrame).setImplementation({
 import './ipc/preload/myapp';
 ```
 
+#### Bundling the Preload Script
+
+The preload script **must be bundled** before use. This is required because:
+1. Electron's preload context has specific module format requirements
+2. The generated IPC files use ES modules which need bundling for preload compatibility
+
+Use [esbuild](https://esbuild.github.io/) or another bundler:
+
+```ts
+import esbuild from 'esbuild';
+
+// For sandbox: false - use ESM format with .mjs extension
+await esbuild.build({
+  entryPoints: ['preload.ts'],
+  bundle: true,
+  platform: 'node',
+  outfile: 'dist/preload.mjs',
+  external: ['electron', 'electron/renderer'],
+  format: 'esm',
+});
+
+// For sandbox: true - use CJS format with .cjs extension
+await esbuild.build({
+  entryPoints: ['preload.ts'],
+  bundle: true,
+  platform: 'node',
+  outfile: 'dist/preload.cjs',
+  external: ['electron', 'electron/renderer'],
+  format: 'cjs',
+});
+```
+
+Then reference the correct preload in your BrowserWindow:
+
+```ts
+new BrowserWindow({
+  webPreferences: {
+    sandbox: false,
+    preload: path.join(__dirname, 'preload.mjs'), // ESM for sandbox: false
+    // OR
+    sandbox: true,
+    preload: path.join(__dirname, 'preload.cjs'), // CJS for sandbox: true
+  },
+});
+```
+
+> **Note:** The `.cjs` extension also works with `sandbox: false`, so you can use a single CJS bundle for both modes if preferred.
+
 ### 5. Call from renderer
 
 ```ts

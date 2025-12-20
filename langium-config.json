@@ -1,0 +1,11 @@
+{
+  "projectName": "Eipc",
+  "languages": [
+    {
+      "id": "eipc",
+      "grammar": "src/language/eipc.langium",
+      "fileExtensions": [".eipc"]
+    }
+  ],
+  "out": "src/language/generated"
+}

@@ -1,5 +1,9 @@
 import { _electron as electron, ElectronApplication, Page } from '@playwright/test';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export interface TestApp {
   electronApp: ElectronApplication;
@@ -13,7 +17,7 @@ export interface TestApp {
  * 2. DOM to be loaded
  * 3. The IPC APIs to be exposed on window
  */
-export async function launchTestApp(options: { sandbox: boolean; loadUrl?: string }): Promise<TestApp> {
+export async function launchTestApp(options: { sandbox: boolean; useCjs?: boolean; loadUrl?: string }): Promise<TestApp> {
   const isLinuxCI = process.env.CI && process.platform === 'linux';
   const electronApp = await electron.launch({
     args: [
@@ -24,6 +28,7 @@ export async function launchTestApp(options: { sandbox: boolean; loadUrl?: strin
     env: {
       ...process.env,
       SANDBOX: options.sandbox ? 'true' : 'false',
+      USE_CJS: options.useCjs ? 'true' : 'false',
       LOAD_URL: options.loadUrl,
     },
   });
