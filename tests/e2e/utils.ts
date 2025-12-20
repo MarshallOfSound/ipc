@@ -14,8 +14,13 @@ export interface TestApp {
  * 3. The IPC APIs to be exposed on window
  */
 export async function launchTestApp(options: { sandbox: boolean; loadUrl?: string }): Promise<TestApp> {
+  const isLinuxCI = process.env.CI && process.platform === 'linux';
   const electronApp = await electron.launch({
-    args: [path.join(__dirname, 'test-app/dist/main.js')],
+    args: [
+      path.join(__dirname, 'test-app/dist/main.js'),
+      // Required for running on Linux CI (GitHub Actions)
+      ...(isLinuxCI ? ['--no-sandbox', '--disable-gpu'] : []),
+    ],
     env: {
       ...process.env,
       SANDBOX: options.sandbox ? 'true' : 'false',
