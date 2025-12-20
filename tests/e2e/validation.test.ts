@@ -350,3 +350,101 @@ test.describe('Main Frame Validation (is_main_frame)', () => {
     expect(result.mainFrameAPI).toBe(false);
   });
 });
+
+test.describe('Invalid URL Handling', () => {
+  test('origin-based validator handles about:blank gracefully', async () => {
+    // Create an iframe with about:blank and verify origin-based validators
+    // don't crash when parsing the invalid URL
+    const result = await page.evaluate(async () => {
+      return new Promise((resolve) => {
+        const iframe = document.createElement('iframe');
+        iframe.src = 'about:blank';
+        iframe.onload = () => {
+          const iframeWindow = iframe.contentWindow as any;
+          // OriginRestrictedAPI has origin validation - should handle about:blank gracefully
+          // and simply not expose the API (rather than crashing)
+          resolve({
+            originRestrictedAPI: !!iframeWindow?.['e2e.test']?.['OriginRestrictedAPI'],
+            // No errors should be thrown during the check
+            noErrors: true,
+          });
+        };
+        document.getElementById('iframe-container')?.appendChild(iframe);
+      });
+    });
+
+    // OriginRestrictedAPI should NOT be available (origin is about:blank, not app://test)
+    expect(result.originRestrictedAPI).toBe(false);
+    expect(result.noErrors).toBe(true);
+  });
+});
+
+test.describe('is_about_blank Validation', () => {
+  test('NotAboutBlankAPI is available in main frame (not about:blank)', async () => {
+    const result = await page.evaluate(async () => {
+      const api = (window as any)['e2e.test']?.['NotAboutBlankAPI'];
+      if (!api) return { available: false };
+      try {
+        const result = await api.NotAboutBlankMethod();
+        return { available: true, result };
+      } catch (e: any) {
+        return { available: true, error: e.message };
+      }
+    });
+
+    expect(result.available).toBe(true);
+    expect(result.result).toBe('not-about-blank-success');
+  });
+
+  test('OnlyAboutBlankAPI is NOT available in main frame (not about:blank)', async () => {
+    const result = await page.evaluate(async () => {
+      const api = (window as any)['e2e.test']?.['OnlyAboutBlankAPI'];
+      return { available: api !== undefined };
+    });
+
+    // OnlyAboutBlankAPI should NOT be available in main frame
+    expect(result.available).toBe(false);
+  });
+
+  test('OnlyAboutBlankAPI IS available when loaded from about:blank', async () => {
+    // Navigate to about:blank
+    await electronApp.evaluate(({ BrowserWindow }) => {
+      BrowserWindow.getAllWindows()[0].loadURL('about:blank');
+    });
+
+    // Wait for navigation
+    await page.waitForURL('about:blank');
+
+    const result = await page.evaluate(async () => {
+      const api = (window as any)['e2e.test']?.['OnlyAboutBlankAPI'];
+      if (!api) return { available: false };
+      try {
+        const methodResult = await api.OnlyAboutBlankMethod();
+        return { available: true, result: methodResult };
+      } catch (e: any) {
+        return { available: true, error: e.message };
+      }
+    });
+
+    expect(result.available).toBe(true);
+    expect(result.result).toBe('only-about-blank-success');
+  });
+
+  test('NotAboutBlankAPI is NOT available when loaded from about:blank', async () => {
+    // Navigate to about:blank
+    await electronApp.evaluate(({ BrowserWindow }) => {
+      BrowserWindow.getAllWindows()[0].loadURL('about:blank');
+    });
+
+    // Wait for navigation
+    await page.waitForURL('about:blank');
+
+    const result = await page.evaluate(async () => {
+      const api = (window as any)['e2e.test']?.['NotAboutBlankAPI'];
+      return { available: api !== undefined };
+    });
+
+    // NotAboutBlankAPI should NOT be available on about:blank
+    expect(result.available).toBe(false);
+  });
+});

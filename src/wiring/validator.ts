@@ -41,6 +41,13 @@ const variables: Record<
     depends_on_url: true,
     type: 'String',
   },
+  is_about_blank: {
+    depends_on_url: false,
+    renderer_depends_on_webframe: false,
+    browser: "event.senderFrame?.url === 'about:blank'",
+    renderer: "window.location.href === 'about:blank'",
+    type: 'Boolean',
+  },
 };
 
 interface ConditionFlags {
@@ -132,15 +139,9 @@ export function wireValidator(validator: Validator, controller: Controller): voi
   const browserCondition = buildGrammar(grammar, 'browser', dependencies);
   const browserEventValidator = [
     `function ${eventValidator(validator.name)}(event: Electron.IpcMainEvent | Electron.IpcMainInvokeEvent) {`,
-    ...(dependencies.depends_on_url ? [
-      '  if (!event.senderFrame) return false;',
-      '  let url: URL;',
-      '  try {',
-      '    url = new URL(event.senderFrame.url);',
-      '  } catch {',
-      '    return false;',
-      '  }',
-    ] : []),
+    ...(dependencies.depends_on_url
+      ? ['  if (!event.senderFrame) return false;', '  let url: URL;', '  try {', '    url = new URL(event.senderFrame.url);', '  } catch {', '    return false;', '  }']
+      : []),
     `  if (${browserCondition}) return true;`,
     '  return false;',
     '}',
@@ -150,14 +151,7 @@ export function wireValidator(validator: Validator, controller: Controller): voi
   const rendererCondition = buildGrammar(grammar, 'renderer', dependencies);
   const rendererExposeValidator = [
     `function ${eventValidator(validator.name)}() {`,
-    ...(dependencies.depends_on_url ? [
-      '  let url: URL;',
-      '  try {',
-      '    url = new URL(window.location.href);',
-      '  } catch {',
-      '    return false;',
-      '  }',
-    ] : []),
+    ...(dependencies.depends_on_url ? ['  let url: URL;', '  try {', '    url = new URL(window.location.href);', '  } catch {', '    return false;', '  }'] : []),
     `  if (${rendererCondition}) return true;`,
     '  return false;',
     '}',
