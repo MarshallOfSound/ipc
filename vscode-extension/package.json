@@ -1,0 +1,75 @@
+{
+  "name": "eipc-language",
+  "displayName": "EIPC Language Support",
+  "description": "Language support for Electron IPC schema files (.eipc)",
+  "version": "0.0.1",
+  "publisher": "marshallofsound",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/anthropic/electron-ipc"
+  },
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "keywords": [
+    "electron",
+    "ipc",
+    "schema",
+    "langium"
+  ],
+  "activationEvents": [
+    "onLanguage:eipc"
+  ],
+  "main": "./dist/extension.cjs",
+  "contributes": {
+    "languages": [
+      {
+        "id": "eipc",
+        "aliases": [
+          "EIPC",
+          "Electron IPC Schema"
+        ],
+        "extensions": [
+          ".eipc"
+        ],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./icons/eipc-light.svg",
+          "dark": "./icons/eipc-dark.svg"
+        }
+      }
+    ],
+    "grammars": [
+      {
+        "language": "eipc",
+        "scopeName": "source.eipc",
+        "path": "./syntaxes/eipc.tmLanguage.json"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "yarn build:extension && yarn build:server",
+    "build:extension": "esbuild src/extension.ts --bundle --outfile=dist/extension.cjs --external:vscode --format=cjs --platform=node",
+    "build:server": "esbuild src/language-server.ts --bundle --outfile=dist/language-server.cjs --format=cjs --platform=node",
+    "watch": "yarn build:extension --watch & yarn build:server --watch",
+    "package": "yarn build && vsce package",
+    "publish": "yarn build && vsce publish"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1",
+    "vscode-languageserver": "^9.0.1",
+    "vscode-languageserver-textdocument": "^1.0.12",
+    "vscode-uri": "^3.0.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/vscode": "^1.80.0",
+    "@vscode/vsce": "^3.2.2",
+    "esbuild": "^0.24.2",
+    "typescript": "^5.8.3"
+  }
+}

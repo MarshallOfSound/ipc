@@ -1,0 +1,18 @@
+# Exclude parent directory (yarn workspace issue)
+../**
+
+# Standard excludes
+.vscode/**
+.vscode-test/**
+node_modules/**
+src/**
+out/**
+**/*.ts
+tsconfig.json
+.gitignore
+.yarnrc.yml
+yarn.lock
+.yarn/**
+**/.git/**
+**/.DS_Store
+**/Thumbs.db
