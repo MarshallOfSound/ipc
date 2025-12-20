@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Iframe Test</title>
+  </head>
+  <body>
+    <div id="iframe-content">
+      <p>This is iframe content</p>
+    </div>
+    <script>
+      // Expose iframe API availability for testing
+      window.__IFRAME_API_STATUS__ = {
+        testAPI: !!(window['e2e.test']?.['TestAPI']),
+        mainFrameAPI: !!(window['e2e.test']?.['MainFrameAPI']),
+        originRestrictedAPI: !!(window['e2e.test']?.['OriginRestrictedAPI']),
+        dynamicGlobalAPI: !!(window['e2e.test']?.['DynamicGlobalAPI']),
+      };
+    </script>
+  </body>
+</html>

@@ -1,0 +1,82 @@
+module e2e.test
+
+validator AllowAll = AND(
+    is_packaged is false
+)
+
+validator MainFrameOnly = AND(
+    is_packaged is false
+    is_main_frame is true
+)
+
+validator OnlyTestOrigin = AND(
+    is_packaged is false
+    origin is "app://test"
+)
+
+validator OnlyLocalhost = AND(
+    is_packaged is false
+    hostname is "localhost"
+)
+
+validator RequiresDynamicGlobal = AND(
+    is_packaged is false
+    dynamic_global(testGlobalFlag)
+)
+
+subtype Username = string(
+    minLength: 3
+    maxLength: 20
+)
+
+subtype HttpsUrl = string(
+    startsWith: "https://"
+)
+
+subtype PositiveNumber = number(
+    minValue: 0
+)
+
+subtype BoundedNumber = number(
+    minValue: 0
+    maxValue: 100
+)
+
+[RendererAPI]
+[Validator=AllowAll]
+[ContextBridge]
+interface TestAPI {
+    GetValue() -> string
+    [Sync]
+    GetValueSync() -> number
+    [Sync]
+    ThrowingSyncMethod() -> string
+    [Event]
+    OnValueChanged(newValue: string)
+    [Store]
+    counter() -> number
+    ValidateUsername(name: Username) -> boolean
+    ValidateNumber(num: PositiveNumber) -> boolean
+    ValidateBoundedNumber(num: BoundedNumber) -> boolean
+}
+
+[RendererAPI]
+[Validator=MainFrameOnly]
+[ContextBridge]
+interface MainFrameAPI {
+    MainFrameOnlyMethod() -> string
+}
+
+[RendererAPI]
+[Validator=OnlyTestOrigin]
+[ContextBridge]
+interface OriginRestrictedAPI {
+    OriginRestrictedMethod() -> string
+}
+
+[RendererAPI]
+[Validator=RequiresDynamicGlobal]
+[ContextBridge]
+interface DynamicGlobalAPI {
+    DynamicGlobalMethod() -> string
+}

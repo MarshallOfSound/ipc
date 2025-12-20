@@ -9,3 +9,9 @@ examples/*/dist
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+# Test artifacts
+test-results/
+playwright-report/
+tests/e2e/test-app/dist/
+tests/e2e/test-app/ipc/

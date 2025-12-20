@@ -3,7 +3,7 @@ import { Validator, ValidatorGrammar, ValidatorNestedCondition } from '../schema
 import { eventValidator } from './_constants';
 
 type VariableType = 'Boolean' | 'String';
-const variables: Record<string, { depends_on_url: true; type: VariableType } | { depends_on_url: false; renderer_depends_on_webframe: boolean; browser: string; renderer: string | null; type: VariableType }> = {
+const variables: Record<string, { depends_on_url: true; type: VariableType; custom_expression?: string } | { depends_on_url: false; renderer_depends_on_webframe: boolean; browser: string; renderer: string | null; type: VariableType }> = {
   is_main_frame: {
     depends_on_url: false,
     renderer_depends_on_webframe: true,
@@ -24,6 +24,9 @@ const variables: Record<string, { depends_on_url: true; type: VariableType } | {
   },
   origin: {
     depends_on_url: true,
+    // Custom protocols (app://, custom://) return null for url.origin
+    // We need to compute it manually as protocol + '//' + host
+    custom_expression: '(url.origin === "null" || url.origin === null ? `${url.protocol}//${url.host}` : url.origin)',
     type: 'String',
   },
   href: {
@@ -85,7 +88,15 @@ function buildCondition(condition: ValidatorNestedCondition, process: 'browser' 
         return `(true)`;
       }
 
-      return `((${info.depends_on_url ? `url.${subject}` : info[process]}) === ${target.type === 'String' ? JSON.stringify(target.value) : target.value})`;
+      // Use custom_expression if defined (e.g., for origin with custom protocols)
+      let expression: string;
+      if (info.depends_on_url) {
+        expression = info.custom_expression ?? `url.${subject}`;
+      } else {
+        expression = info[process] as string;
+      }
+
+      return `((${expression}) === ${target.type === 'String' ? JSON.stringify(target.value) : target.value})`;
     }
     case 'DynamicGlobal': {
       const { param } = condition;
