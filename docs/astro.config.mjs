@@ -14,7 +14,7 @@ const eipcGrammar = JSON.parse(
 
 export default defineConfig({
   site: 'https://marshallofsound.github.io',
-  base: '/ipc',
+  base: '/',
   vite: {
     plugins: [tailwindcss()],
   },
