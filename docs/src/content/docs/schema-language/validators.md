@@ -170,5 +170,5 @@ This dual-check ensures security even if conditions change after page load.
 
 ## Next Steps
 
-- [Types](/ipc/docs/schema-language/types) — Define validated types for your APIs
-- [Interfaces](/ipc/docs/interfaces/overview) — Create your API surface
+- [Types](/docs/schema-language/types) — Define validated types for your APIs
+- [Interfaces](/docs/interfaces/overview) — Create your API surface

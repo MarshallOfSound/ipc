@@ -95,4 +95,4 @@ module.exports = {
 
 ## Next Steps
 
-Now that EIPC is installed, continue to the [Quick Start](/ipc/docs/getting-started/quick-start) guide to create your first schema.
+Now that EIPC is installed, continue to the [Quick Start](/docs/getting-started/quick-start) guide to create your first schema.

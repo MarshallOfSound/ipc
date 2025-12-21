@@ -151,6 +151,6 @@ From this simple schema, EIPC generates:
 
 ## Next Steps
 
-- Learn about [Validators](/ipc/docs/schema-language/validators) for security
-- Explore [Stores](/ipc/docs/interfaces/stores) for reactive state
-- Add [Events](/ipc/docs/interfaces/events) for main-to-renderer communication
+- Learn about [Validators](/docs/schema-language/validators) for security
+- Explore [Stores](/docs/interfaces/stores) for reactive state
+- Add [Events](/docs/interfaces/events) for main-to-renderer communication

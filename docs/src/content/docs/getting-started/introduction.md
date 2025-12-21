@@ -111,5 +111,5 @@ function MyComponent() {
 
 ## Next Steps
 
-- [Installation](/ipc/docs/getting-started/installation) — Add EIPC to your project
-- [Quick Start](/ipc/docs/getting-started/quick-start) — Build your first type-safe IPC
+- [Installation](/docs/getting-started/installation) — Add EIPC to your project
+- [Quick Start](/docs/getting-started/quick-start) — Build your first type-safe IPC

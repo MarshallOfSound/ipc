@@ -281,5 +281,5 @@ Use **Events** for:
 
 ## Next Steps
 
-- [Events](/ipc/docs/interfaces/events) — One-way notifications
-- [Validators](/ipc/docs/schema-language/validators) — Secure your stores
+- [Events](/docs/interfaces/events) — One-way notifications
+- [Validators](/docs/schema-language/validators) — Secure your stores

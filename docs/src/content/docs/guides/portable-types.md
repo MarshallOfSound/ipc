@@ -220,4 +220,4 @@ jobs:
 
 3. **Only expose what's needed** — Don't make all modules portable, only those specifically designed for external consumption
 
-4. **Consider security** — Portable modules are accessible to external code loaded in your app; use [Validators](/ipc/docs/schema-language/validators) to restrict access appropriately
+4. **Consider security** — Portable modules are accessible to external code loaded in your app; use [Validators](/docs/schema-language/validators) to restrict access appropriately

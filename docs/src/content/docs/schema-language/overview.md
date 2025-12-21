@@ -86,6 +86,6 @@ interface Example {
 
 ## Next Steps
 
-- [Validators](/ipc/docs/schema-language/validators) — Learn about security validators
-- [Types](/ipc/docs/schema-language/types) — Understand the type system
-- [Interfaces](/ipc/docs/interfaces/overview) — Define your API surface
+- [Validators](/docs/schema-language/validators) — Learn about security validators
+- [Types](/docs/schema-language/types) — Understand the type system
+- [Interfaces](/docs/interfaces/overview) — Define your API surface

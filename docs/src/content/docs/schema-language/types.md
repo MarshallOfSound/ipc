@@ -328,5 +328,5 @@ interface Users {
 
 ## Next Steps
 
-- [Interfaces](/ipc/docs/interfaces/overview) — Define your API surface
-- [Validators](/ipc/docs/schema-language/validators) — Add security to your APIs
+- [Interfaces](/docs/interfaces/overview) — Define your API surface
+- [Validators](/docs/schema-language/validators) — Add security to your APIs

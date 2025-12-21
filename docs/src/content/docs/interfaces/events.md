@@ -272,5 +272,5 @@ Use **Stores** when:
 
 ## Next Steps
 
-- [Stores](/ipc/docs/interfaces/stores) — Reactive state with React hooks
-- [Validators](/ipc/docs/schema-language/validators) — Secure your events
+- [Stores](/docs/interfaces/stores) — Reactive state with React hooks
+- [Validators](/docs/schema-language/validators) — Secure your events

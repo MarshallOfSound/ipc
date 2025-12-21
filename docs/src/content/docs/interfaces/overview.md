@@ -168,7 +168,7 @@ Import the generated preload code to expose the API:
 import './ipc/preload/MyApp';
 ```
 
-This must be bundled before use. See [Installation](/ipc/docs/getting-started/installation) for bundling instructions.
+This must be bundled before use. See [Installation](/docs/getting-started/installation) for bundling instructions.
 
 ## Renderer Usage
 
@@ -218,6 +218,6 @@ await App.getVersion();
 
 ## Next Steps
 
-- [Methods](/ipc/docs/interfaces/methods) — Learn about sync and async methods
-- [Events](/ipc/docs/interfaces/events) — Send events from main to renderer
-- [Stores](/ipc/docs/interfaces/stores) — Reactive state with React hooks
+- [Methods](/docs/interfaces/methods) — Learn about sync and async methods
+- [Events](/docs/interfaces/events) — Send events from main to renderer
+- [Stores](/docs/interfaces/stores) — Reactive state with React hooks

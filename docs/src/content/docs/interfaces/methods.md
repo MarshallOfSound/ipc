@@ -243,5 +243,5 @@ await API.createUser('John', 'invalid-email', -5);
 
 ## Next Steps
 
-- [Events](/ipc/docs/interfaces/events) — Send events from main to renderer
-- [Stores](/ipc/docs/interfaces/stores) — Reactive state with React hooks
+- [Events](/docs/interfaces/events) — Send events from main to renderer
+- [Stores](/docs/interfaces/stores) — Reactive state with React hooks
