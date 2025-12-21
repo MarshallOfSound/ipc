@@ -81,7 +81,7 @@ interface ComputerInfo {
     [NotImplemented]
     GetFutureFeature() -> string
     [Event]
-    OnShutdown(foo: string)
+    shutdown(foo: string)
     [Store]
     blah() -> string
 }
