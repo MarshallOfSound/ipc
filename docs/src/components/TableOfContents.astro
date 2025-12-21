@@ -12,11 +12,11 @@ const toc = headings.filter((h) => h.depth >= 2 && h.depth <= 3);
 {toc.length > 0 && (
   <aside class="hidden xl:block fixed right-0 top-16 h-[calc(100vh-4rem)] w-64 overflow-y-auto border-l border-[--color-border] bg-[--color-bg-primary]/95 backdrop-blur-xl p-6">
     <!-- Decorative top border -->
-    <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-[--color-electron-purple]/30 via-transparent to-transparent"></div>
+    <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-electron-purple/30 via-transparent to-transparent"></div>
 
     <div class="sticky top-6">
       <h4 class="flex items-center gap-2 mb-4 text-xs font-bold uppercase tracking-widest text-[--color-text-tertiary]" style="font-family: var(--font-display);">
-        <svg class="w-3.5 h-3.5 text-[--color-electron-purple]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <svg class="w-3.5 h-3.5 text-electron-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h7"/>
         </svg>
         On this page
@@ -32,14 +32,14 @@ const toc = headings.filter((h) => h.depth >= 2 && h.depth <= 3);
               <a
                 href={`#${heading.slug}`}
                 class:list={[
-                  'group block py-1.5 text-sm transition-all duration-200 hover:text-[--color-electron-cyan] relative',
+                  'group block py-1.5 text-sm transition-all duration-200 hover:text-electron-cyan relative',
                   heading.depth === 2
                     ? 'text-[--color-text-secondary] font-medium'
                     : 'pl-3 text-[--color-text-tertiary] text-xs',
                 ]}
               >
                 <!-- Active indicator (shown via JS) -->
-                <span class="toc-indicator absolute -left-4 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-[--color-electron-cyan] rounded-full opacity-0 transition-opacity"></span>
+                <span class="toc-indicator absolute -left-4 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-electron-cyan rounded-full opacity-0 transition-opacity"></span>
                 <span class="group-hover:translate-x-1 transition-transform inline-block">{heading.text}</span>
               </a>
             </li>
@@ -82,10 +82,10 @@ const toc = headings.filter((h) => h.depth >= 2 && h.depth <= 3);
             tocLinks.forEach((link) => {
               const indicator = link.querySelector('.toc-indicator');
               if (link.getAttribute('href') === `#${id}`) {
-                link.classList.add('text-[--color-electron-cyan]');
+                link.classList.add('text-electron-cyan');
                 if (indicator) indicator.style.opacity = '1';
               } else {
-                link.classList.remove('text-[--color-electron-cyan]');
+                link.classList.remove('text-electron-cyan');
                 if (indicator) indicator.style.opacity = '0';
               }
             });

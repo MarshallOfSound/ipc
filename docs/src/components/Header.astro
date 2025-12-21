@@ -12,11 +12,11 @@ const navItems = [
   <div class="absolute inset-0 bg-[--color-bg-primary]/70 backdrop-blur-xl border-b border-[--color-border]"></div>
 
   <!-- Electric line accent at top -->
-  <div class="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-[--color-electron-cyan]/50 to-transparent"></div>
+  <div class="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-electron-cyan/50 to-transparent"></div>
 
   <div class="relative mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
     <!-- Logo -->
-    <a href="/" class="group flex items-center gap-2.5 text-[--color-text-primary] transition-all duration-300 hover:text-[--color-electron-cyan]">
+    <a href="/" class="group flex items-center gap-2.5 text-[--color-text-primary] transition-all duration-300 hover:text-electron-cyan">
       <!-- Simple Electron Logo -->
       <div class="w-8 h-8 flex items-center justify-center">
         <svg viewBox="0 0 32 32" class="w-full h-full" fill="none">
@@ -37,7 +37,7 @@ const navItems = [
       {navItems.map((item) => (
         <a
           href={item.href}
-          class="relative px-4 py-2 text-sm font-medium text-[--color-text-secondary] transition-all duration-300 hover:text-[--color-electron-cyan] group"
+          class="relative px-4 py-2 text-sm font-medium text-[--color-text-secondary] transition-all duration-300 hover:text-electron-cyan group"
           {...(item.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
         >
           <span class="relative z-10">{item.label}</span>
@@ -47,7 +47,7 @@ const navItems = [
             </svg>
           )}
           <!-- Hover background -->
-          <span class="absolute inset-0 rounded-lg bg-[--color-electron-cyan]/0 group-hover:bg-[--color-electron-cyan]/10 transition-colors"></span>
+          <span class="absolute inset-0 rounded-lg bg-electron-cyan/0 group-hover:bg-electron-cyan/10 transition-colors"></span>
         </a>
       ))}
     </nav>
@@ -94,7 +94,7 @@ const navItems = [
     {navItems.map((item) => (
       <a
         href={item.href}
-        class="text-2xl font-semibold text-[--color-text-primary] hover:text-[--color-electron-cyan] transition-colors"
+        class="text-2xl font-semibold text-[--color-text-primary] hover:text-electron-cyan transition-colors"
         {...(item.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
       >
         {item.label}
