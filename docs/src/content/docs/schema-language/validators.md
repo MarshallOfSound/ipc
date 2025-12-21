@@ -23,13 +23,28 @@ validator MyValidator = AND(
 
 ## Available Conditions
 
+### Exact Match (`is`)
+
 | Condition | Description |
 |-----------|-------------|
 | `is_packaged is true/false` | Check if app is packaged (production) or running from source |
 | `is_main_frame is true/false` | Check if request comes from main frame (not iframe) |
-| `origin is "https://example.com"` | Check the page origin (supports custom protocols like `app://`) |
-| `hostname is "localhost"` | Check the hostname |
-| `protocol is "https:"` | Check the protocol |
+| `origin is "https://example.com"` | Check the page origin exactly (supports custom protocols like `app://`) |
+| `hostname is "localhost"` | Check the hostname exactly |
+| `protocol is "https:"` | Check the protocol exactly |
+
+### Prefix Match (`startsWith`)
+
+| Condition | Description |
+|-----------|-------------|
+| `origin startsWith "https://myapp"` | Check if origin starts with prefix |
+| `hostname startsWith "api."` | Check if hostname starts with prefix |
+| `href startsWith "https://myapp.com/admin"` | Check if full URL starts with prefix |
+
+### Dynamic Checks
+
+| Condition | Description |
+|-----------|-------------|
 | `dynamic_global(flagName)` | Check if `global.flagName` is truthy in main process |
 
 ## Examples
@@ -78,6 +93,30 @@ validator TrustedOrigins = AND(
     origin is "https://admin.myapp.com"
     hostname is "localhost"
   )
+)
+```
+
+### Prefix Matching
+
+Use `startsWith` to match origins with a common prefix:
+
+```eipc
+validator MyAppOrigins = AND(
+  is_main_frame is true
+  origin startsWith "https://myapp"
+)
+```
+
+This matches `https://myapp.com`, `https://myapp.io`, `https://myapp-staging.com`, etc.
+
+### Path-Based Access Control
+
+Restrict access based on URL path:
+
+```eipc
+validator AdminOnly = AND(
+  is_main_frame is true
+  href startsWith "https://myapp.com/admin"
 )
 ```
 

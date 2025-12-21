@@ -22,6 +22,12 @@ validator OnlyCustomProtocol = AND(
     is_main_frame is true
 )
 
+// Validator using startsWith for prefix matching
+validator AdminPagesOnly = AND(
+    is_main_frame is true
+    href startsWith "https://myapp.com/admin"
+)
+
 validator OnlyWithDynamicGlobal = AND(
     dynamic_global(fooBarRabbitCheese)
     is_main_frame is true

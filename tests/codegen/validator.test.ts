@@ -218,6 +218,55 @@ validator TestValidator = AND(
     });
   });
 
-  // Note: startsWith is in the grammar but not implemented in validator wiring yet
-  // When implemented, add test here
+  describe('startsWith', () => {
+    it('generates startsWith for origin', async () => {
+      const schema = withValidator(`
+validator TestValidator = AND(
+    origin startsWith "https://myapp"
+)`);
+      const wiring = await generateWiringFromString(schema);
+      expect(wiring.browser.internal).toContain('.startsWith(');
+      expect(wiring.browser.internal).toContain('"https://myapp"');
+    });
+
+    it('generates startsWith for hostname', async () => {
+      const schema = withValidator(`
+validator TestValidator = AND(
+    hostname startsWith "api."
+)`);
+      const wiring = await generateWiringFromString(schema);
+      expect(wiring.browser.internal).toContain('url.hostname');
+      expect(wiring.browser.internal).toContain('.startsWith(');
+      expect(wiring.browser.internal).toContain('"api."');
+    });
+
+    it('generates startsWith for href', async () => {
+      const schema = withValidator(`
+validator TestValidator = AND(
+    href startsWith "https://myapp.com/admin"
+)`);
+      const wiring = await generateWiringFromString(schema);
+      expect(wiring.browser.internal).toContain('url.href');
+      expect(wiring.browser.internal).toContain('.startsWith(');
+    });
+
+    it('combines startsWith with other conditions', async () => {
+      const schema = withValidator(`
+validator TestValidator = AND(
+    is_main_frame is true
+    origin startsWith "https://myapp"
+)`);
+      const wiring = await generateWiringFromString(schema);
+      expect(wiring.browser.internal).toContain('event.senderFrame?.parent === null');
+      expect(wiring.browser.internal).toContain('.startsWith(');
+    });
+
+    it('rejects startsWith on boolean variables', async () => {
+      const schema = withValidator(`
+validator TestValidator = AND(
+    is_main_frame startsWith "true"
+)`);
+      await expect(generateWiringFromString(schema)).rejects.toThrow('String');
+    });
+  });
 });
