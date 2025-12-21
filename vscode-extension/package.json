@@ -1,5 +1,6 @@
 {
-  "name": "eipc-language",
+  "name": "@marshallofsound/eipc-language",
+  "private": true,
   "displayName": "EIPC Language Support",
   "description": "Language support for Electron IPC schema files (.eipc)",
   "version": "0.0.0-development",

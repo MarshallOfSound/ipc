@@ -69,10 +69,10 @@ jobs:
       - name: Update VS Code extension version
         run: |
           cd vscode-extension
-          npm version ${{ needs.release.outputs.new-release-version }} --no-git-tag-version --allow-same-version
+          jq '.version = "${{ needs.release.outputs.new-release-version }}"' package.json > tmp.json && mv tmp.json package.json
 
       - name: Build VS Code extension
-        run: yarn && yarn build:vscode
+        run: yarn build:vscode
         env:
           YARN_ENABLE_HARDENED_MODE: 0
 
