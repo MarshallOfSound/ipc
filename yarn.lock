@@ -629,22 +629,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@marshallofsound/eipc-language@workspace:vscode-extension":
-  version: 0.0.0-use.local
-  resolution: "@marshallofsound/eipc-language@workspace:vscode-extension"
-  dependencies:
-    "@types/node": "npm:^20.10.0"
-    "@types/vscode": "npm:^1.80.0"
-    "@vscode/vsce": "npm:^3.2.2"
-    esbuild: "npm:^0.24.2"
-    typescript: "npm:^5.8.3"
-    vscode-languageclient: "npm:^9.0.1"
-    vscode-languageserver: "npm:^9.0.1"
-    vscode-languageserver-textdocument: "npm:^1.0.12"
-    vscode-uri: "npm:^3.0.8"
-  languageName: unknown
-  linkType: soft
-
 "@marshallofsound/ipc@workspace:.":
   version: 0.0.0-use.local
   resolution: "@marshallofsound/ipc@workspace:."
@@ -2171,6 +2155,22 @@ __metadata:
   checksum: 10c0/566edfdea81c5b9e9e366e4ceea7d0911095cc7689640e31113c49530762daaa39df4c60b2811ba05c769c485051592bf136325da019e1642bbead7d60bb7c1a
   languageName: node
   linkType: hard
+
+"eipc-language@workspace:vscode-extension":
+  version: 0.0.0-use.local
+  resolution: "eipc-language@workspace:vscode-extension"
+  dependencies:
+    "@types/node": "npm:^20.10.0"
+    "@types/vscode": "npm:^1.80.0"
+    "@vscode/vsce": "npm:^3.2.2"
+    esbuild: "npm:^0.24.2"
+    typescript: "npm:^5.8.3"
+    vscode-languageclient: "npm:^9.0.1"
+    vscode-languageserver: "npm:^9.0.1"
+    vscode-languageserver-textdocument: "npm:^1.0.12"
+    vscode-uri: "npm:^3.0.8"
+  languageName: unknown
+  linkType: soft
 
 "electron@npm:^36.4.0":
   version: 36.4.0
