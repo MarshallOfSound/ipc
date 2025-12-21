@@ -17,7 +17,7 @@
   "scripts": {
     "langium:generate": "langium generate",
     "build": "yarn langium:generate && tsc",
-    "build:vscode": "yarn workspace @electron/eipc-language build",
+    "build:vscode": "yarn workspace @marshallofsound/eipc-language build",
     "lint": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\" \"tests/**/*.tsx\"",
     "lint:fix": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\" \"tests/**/*.tsx\"",
     "test": "vitest run",
