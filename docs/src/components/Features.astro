@@ -1,0 +1,155 @@
+---
+const features = [
+  {
+    icon: 'shield',
+    title: 'Type Safety',
+    description: 'End-to-end TypeScript types from schema to renderer. Catch errors at compile time, not runtime.',
+    color: 'cyan',
+  },
+  {
+    icon: 'check',
+    title: 'Runtime Validation',
+    description: 'Automatic validation of all IPC arguments and return values. Define once, validate everywhere.',
+    color: 'purple',
+  },
+  {
+    icon: 'lock',
+    title: 'Security First',
+    description: 'Origin validation, production-only APIs, and secure context bridge exposure built-in.',
+    color: 'pink',
+  },
+  {
+    icon: 'sync',
+    title: 'Reactive Stores',
+    description: 'Built-in state management with React hooks. Sync state between main and renderer effortlessly.',
+    color: 'cyan',
+  },
+  {
+    icon: 'bolt',
+    title: 'Events & Sync',
+    description: 'Support for async, sync, and event-based patterns. Choose the right tool for each use case.',
+    color: 'purple',
+  },
+  {
+    icon: 'code',
+    title: 'Zero Boilerplate',
+    description: 'No manual IPC registration. Your schema generates handlers, types, and bridge code automatically.',
+    color: 'pink',
+  },
+];
+
+const icons = {
+  shield: `<path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />`,
+  check: `<path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />`,
+  lock: `<path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />`,
+  sync: `<path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />`,
+  bolt: `<path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />`,
+  code: `<path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />`,
+};
+
+const colorClasses = {
+  cyan: {
+    bg: 'from-[--color-electron-cyan]/20 to-[--color-electron-cyan]/5',
+    ring: 'ring-[--color-electron-cyan]/30',
+    text: 'text-[--color-electron-cyan]',
+    glow: 'shadow-[--color-electron-cyan]/20',
+  },
+  purple: {
+    bg: 'from-[--color-electron-purple]/20 to-[--color-electron-purple]/5',
+    ring: 'ring-[--color-electron-purple]/30',
+    text: 'text-[--color-electron-purple]',
+    glow: 'shadow-[--color-electron-purple]/20',
+  },
+  pink: {
+    bg: 'from-[--color-electron-pink]/20 to-[--color-electron-pink]/5',
+    ring: 'ring-[--color-electron-pink]/30',
+    text: 'text-[--color-electron-pink]',
+    glow: 'shadow-[--color-electron-pink]/20',
+  },
+};
+---
+
+<section class="relative py-32 overflow-hidden" id="features">
+  <!-- Background -->
+  <div class="absolute inset-0 bg-[--color-bg-secondary]"></div>
+
+  <!-- Decorative elements -->
+  <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[--color-border] to-transparent"></div>
+  <div class="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[--color-border] to-transparent"></div>
+
+  <!-- Ambient glow -->
+  <div class="absolute top-1/2 left-1/4 -translate-y-1/2 w-96 h-96 bg-[--color-electron-cyan]/[0.02] rounded-full blur-3xl"></div>
+  <div class="absolute top-1/2 right-1/4 -translate-y-1/2 w-96 h-96 bg-[--color-electron-purple]/[0.02] rounded-full blur-3xl"></div>
+
+  <div class="relative mx-auto max-w-7xl px-6">
+    <!-- Section header -->
+    <div class="text-center mb-20">
+      <div class="inline-flex items-center gap-2 mb-6 px-4 py-2 rounded-full bg-[--color-bg-tertiary] border border-[--color-border]">
+        <svg class="w-4 h-4 text-[--color-electron-cyan]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+        </svg>
+        <span class="text-sm font-medium text-[--color-text-secondary]">Features</span>
+      </div>
+
+      <h2 class="text-4xl md:text-5xl lg:text-6xl font-extrabold text-[--color-text-primary] tracking-tight mb-6" style="font-family: var(--font-display);">
+        Everything you need for
+        <span class="heading-electric block sm:inline">modern Electron IPC</span>
+      </h2>
+
+      <p class="max-w-2xl mx-auto text-lg text-[--color-text-secondary] leading-relaxed">
+        EIPC eliminates the pain of Electron inter-process communication with a declarative schema-first approach.
+      </p>
+    </div>
+
+    <!-- Feature grid -->
+    <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      {features.map((feature, index) => {
+        const colors = colorClasses[feature.color as keyof typeof colorClasses];
+        return (
+          <div
+            class="feature-card group"
+            style={`animation: fade-in-up 0.6s ease-out forwards; animation-delay: ${index * 0.1}s; opacity: 0;`}
+          >
+            <!-- Icon -->
+            <div class={`relative mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br ${colors.bg} ${colors.text} ring-1 ${colors.ring} transition-all duration-300 group-hover:scale-110 group-hover:shadow-xl ${colors.glow}`}>
+              <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" set:html={icons[feature.icon as keyof typeof icons]} />
+
+              <!-- Shine effect -->
+              <div class="absolute inset-0 rounded-2xl bg-gradient-to-tr from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            </div>
+
+            <!-- Content -->
+            <h3 class={`text-xl font-bold text-[--color-text-primary] mb-3 group-hover:${colors.text} transition-colors`} style="font-family: var(--font-display);">
+              {feature.title}
+            </h3>
+
+            <p class="text-[--color-text-secondary] leading-relaxed">
+              {feature.description}
+            </p>
+
+            <!-- Hover indicator -->
+            <div class="mt-5 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+              <span class={`text-sm font-medium ${colors.text}`}>Learn more</span>
+              <svg class={`w-4 h-4 ${colors.text} transform group-hover:translate-x-1 transition-transform`} fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+              </svg>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  </div>
+</section>
+
+<style>
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+</style>

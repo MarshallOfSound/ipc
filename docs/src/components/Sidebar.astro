@@ -1,0 +1,126 @@
+---
+interface Props {
+  currentPath?: string;
+}
+
+const { currentPath = '' } = Astro.props;
+
+const navigation = [
+  {
+    title: 'Getting Started',
+    icon: 'rocket',
+    items: [
+      { href: '/ipc/docs/getting-started/introduction', label: 'Introduction' },
+      { href: '/ipc/docs/getting-started/installation', label: 'Installation' },
+      { href: '/ipc/docs/getting-started/quick-start', label: 'Quick Start' },
+    ],
+  },
+  {
+    title: 'Schema Language',
+    icon: 'code',
+    items: [
+      { href: '/ipc/docs/schema-language/overview', label: 'Overview' },
+      { href: '/ipc/docs/schema-language/validators', label: 'Validators' },
+      { href: '/ipc/docs/schema-language/types', label: 'Types' },
+    ],
+  },
+  {
+    title: 'Interfaces',
+    icon: 'puzzle',
+    items: [
+      { href: '/ipc/docs/interfaces/overview', label: 'Overview' },
+      { href: '/ipc/docs/interfaces/methods', label: 'Methods' },
+      { href: '/ipc/docs/interfaces/events', label: 'Events' },
+      { href: '/ipc/docs/interfaces/stores', label: 'Stores' },
+    ],
+  },
+  {
+    title: 'Guides',
+    icon: 'book',
+    items: [
+      { href: '/ipc/docs/guides/portable-types', label: 'Portable Types' },
+    ],
+  },
+  {
+    title: 'API',
+    icon: 'api',
+    items: [
+      { href: '/ipc/docs/api/reference', label: 'Reference' },
+    ],
+  },
+];
+
+function isActive(href: string): boolean {
+  return currentPath === href || currentPath.startsWith(href + '/');
+}
+---
+
+<aside class="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 flex flex-col border-r border-[--color-border] bg-[--color-bg-primary]/95 backdrop-blur-xl">
+  <!-- Decorative top border -->
+  <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[--color-electron-cyan]/30 to-transparent"></div>
+
+  <div class="flex-1 min-h-0 overflow-y-auto">
+    <nav class="p-6 pb-4 space-y-6">
+    {navigation.map((section, sectionIndex) => (
+      <div class="sidebar-section" style={`animation: fade-in-up 0.4s ease-out forwards; animation-delay: ${sectionIndex * 0.05}s; opacity: 0;`}>
+        <h3 class="flex items-center gap-2 mb-3 text-xs font-bold uppercase tracking-widest text-[--color-text-tertiary]" style="font-family: var(--font-display);">
+          <span class="w-1 h-4 rounded-full bg-gradient-to-b from-[--color-electron-cyan] to-[--color-electron-purple] opacity-50"></span>
+          {section.title}
+        </h3>
+
+        <ul class="space-y-0.5 pl-3 border-l border-[--color-border]">
+          {section.items.map((item) => (
+            <li class="relative">
+              {isActive(item.href) && (
+                <span class="absolute -left-[3px] top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-[--color-electron-cyan] shadow-lg shadow-[--color-electron-cyan]/50"></span>
+              )}
+              <a
+                href={item.href}
+                class:list={[
+                  'block rounded-lg px-3 py-2 text-sm transition-all duration-200',
+                  isActive(item.href)
+                    ? 'bg-[--color-electron-cyan]/10 text-[--color-electron-cyan] font-medium border border-[--color-electron-cyan]/20'
+                    : 'text-[--color-text-secondary] hover:bg-[--color-bg-secondary] hover:text-[--color-text-primary] hover:translate-x-1',
+                ]}
+              >
+                {item.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    ))}
+    </nav>
+  </div>
+
+  <!-- Back to home link -->
+  <div class="back-to-home flex-shrink-0 p-4 border-t border-[--color-border]">
+    <a href="/ipc/" class="flex items-center gap-2 text-sm text-[--color-text-tertiary] hover:text-[--color-electron-cyan] transition-colors">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+      </svg>
+      <span>Back to home</span>
+    </a>
+  </div>
+</aside>
+
+<style>
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .back-to-home {
+    background: #050810;
+  }
+
+  :global(:root.light) .back-to-home {
+    background: #f8fafc;
+  }
+</style>

@@ -1,0 +1,254 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Hero from '../components/Hero.astro';
+import Features from '../components/Features.astro';
+import CodeBlock from '../components/CodeBlock.astro';
+
+const schemaCode = `module MyApp
+
+[RendererAPI]
+[ContextBridge]
+interface AppSettings {
+  getTheme() -> Theme
+  setTheme(theme: Theme)
+  getVersion() -> string
+}`;
+
+const usageCode = `import { AppSettings } from './ipc/renderer/MyApp';
+
+const theme = await AppSettings.getTheme();`;
+---
+
+<BaseLayout title="Type-safe Electron IPC">
+  <Header />
+  <main>
+    <Hero />
+    <Features />
+
+    <!-- Quick Start Section -->
+    <section class="relative py-32 overflow-hidden">
+      <!-- Background -->
+      <div class="absolute inset-0 bg-[--color-bg-primary]"></div>
+
+      <!-- Grid pattern -->
+      <div class="absolute inset-0 circuit-bg"></div>
+
+      <!-- Ambient glow -->
+      <div class="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-gradient-radial from-[--color-electron-purple]/10 via-transparent to-transparent rounded-full blur-3xl pointer-events-none"></div>
+
+      <div class="relative mx-auto max-w-4xl px-6">
+        <!-- Section header -->
+        <div class="text-center mb-16">
+          <div class="inline-flex items-center gap-2 mb-6 px-4 py-2 rounded-full bg-[--color-bg-tertiary] border border-[--color-border]">
+            <svg class="w-4 h-4 text-[--color-electron-cyan]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+            <span class="text-sm font-medium text-[--color-text-secondary]">Quick Start</span>
+          </div>
+
+          <h2 class="text-4xl md:text-5xl lg:text-6xl font-extrabold text-[--color-text-primary] tracking-tight mb-6" style="font-family: var(--font-display);">
+            Get started in <span class="heading-electric">minutes</span>
+          </h2>
+
+          <p class="max-w-xl mx-auto text-lg text-[--color-text-secondary] leading-relaxed">
+            Install EIPC, define your schema, and start building type-safe IPC.
+          </p>
+        </div>
+
+        <!-- Steps -->
+        <div class="space-y-8">
+          <!-- Step 1 -->
+          <div class="group relative flex items-start gap-6" style="animation: fade-in-up 0.6s ease-out forwards; animation-delay: 0.1s; opacity: 0;">
+            <div class="step-indicator flex-shrink-0 mt-4">1</div>
+
+            <div class="flex-1 code-window rounded-2xl overflow-hidden">
+              <div class="code-window-header flex items-center gap-4 px-5 py-3.5 border-b" style="background: rgba(30, 41, 59, 0.8); border-color: rgba(255,255,255,0.1);">
+                <div class="traffic-lights">
+                  <div class="traffic-light traffic-light-red"></div>
+                  <div class="traffic-light traffic-light-yellow"></div>
+                  <div class="traffic-light traffic-light-green"></div>
+                </div>
+                <span class="code-window-title text-sm font-medium" style="color: #94a3b8;">Install the package</span>
+                <button
+                  class="copy-btn ml-auto p-2 rounded-lg hover:bg-white/10 transition-colors"
+                  data-copy="npm install @electron-ipc/core"
+                  aria-label="Copy to clipboard"
+                >
+                  <svg class="w-4 h-4 text-[#94a3b8] copy-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                  </svg>
+                  <svg class="w-4 h-4 text-emerald-400 check-icon hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                  </svg>
+                </button>
+              </div>
+              <pre class="p-5 overflow-x-auto !bg-transparent !border-0"><code class="text-sm font-mono"><span class="select-none" style="color: #a78bfa;">$ </span><span style="color: #e2e8f0;">npm install</span> <span style="color: #22d3ee;">@electron-ipc/core</span></code></pre>
+            </div>
+          </div>
+
+          <!-- Step 2 -->
+          <div class="group relative flex items-start gap-6" style="animation: fade-in-up 0.6s ease-out forwards; animation-delay: 0.2s; opacity: 0;">
+            <div class="step-indicator flex-shrink-0 mt-4">2</div>
+
+            <div class="flex-1 code-window rounded-2xl overflow-hidden">
+              <div class="code-window-header flex items-center gap-4 px-5 py-3.5 border-b" style="background: rgba(30, 41, 59, 0.8); border-color: rgba(255,255,255,0.1);">
+                <div class="traffic-lights">
+                  <div class="traffic-light traffic-light-red"></div>
+                  <div class="traffic-light traffic-light-yellow"></div>
+                  <div class="traffic-light traffic-light-green"></div>
+                </div>
+                <span class="code-window-title text-sm font-medium" style="color: #94a3b8;">Define your schema</span>
+                <span class="code-window-badge ml-auto px-3 py-1 rounded-md text-xs" style="background: rgba(15, 23, 42, 0.5); color: #64748b; border: 1px solid rgba(255,255,255,0.1);">api.eipc</span>
+              </div>
+              <div class="p-5">
+                <CodeBlock code={schemaCode} lang="eipc" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 3 -->
+          <div class="group relative flex items-start gap-6" style="animation: fade-in-up 0.6s ease-out forwards; animation-delay: 0.3s; opacity: 0;">
+            <div class="step-indicator flex-shrink-0 mt-4">3</div>
+
+            <div class="flex-1 code-window rounded-2xl overflow-hidden">
+              <div class="code-window-header flex items-center gap-4 px-5 py-3.5 border-b" style="background: rgba(30, 41, 59, 0.8); border-color: rgba(255,255,255,0.1);">
+                <div class="traffic-lights">
+                  <div class="traffic-light traffic-light-red"></div>
+                  <div class="traffic-light traffic-light-yellow"></div>
+                  <div class="traffic-light traffic-light-green"></div>
+                </div>
+                <span class="code-window-title text-sm font-medium" style="color: #94a3b8;">Use in your app</span>
+                <span class="code-window-badge ml-auto px-3 py-1 rounded-md text-xs" style="background: rgba(15, 23, 42, 0.5); color: #64748b; border: 1px solid rgba(255,255,255,0.1);">renderer.ts</span>
+              </div>
+              <div class="p-5">
+                <CodeBlock code={usageCode} lang="typescript" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CTA -->
+        <div class="mt-16 text-center" style="animation: fade-in-up 0.6s ease-out forwards; animation-delay: 0.4s; opacity: 0;">
+          <a href="/ipc/docs/getting-started/introduction" class="btn-secondary group">
+            <span>Read the full documentation</span>
+            <svg class="w-5 h-5 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Social Proof / Stats Section -->
+    <section class="relative py-20 overflow-hidden">
+      <div class="absolute inset-0 bg-gradient-to-b from-[--color-bg-primary] via-[--color-bg-secondary] to-[--color-bg-primary]"></div>
+      <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[--color-border] to-transparent"></div>
+      <div class="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[--color-border] to-transparent"></div>
+
+      <div class="relative mx-auto max-w-5xl px-6">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 text-center">
+          <div class="group">
+            <div class="text-3xl md:text-4xl font-bold heading-electric mb-2" style="font-family: var(--font-display);">100%</div>
+            <div class="text-sm text-[--color-text-secondary]">Type-safe</div>
+          </div>
+          <div class="group">
+            <div class="text-3xl md:text-4xl font-bold heading-electric mb-2" style="font-family: var(--font-display);">0</div>
+            <div class="text-sm text-[--color-text-secondary]">Boilerplate</div>
+          </div>
+          <div class="group">
+            <div class="text-3xl md:text-4xl font-bold heading-electric mb-2" style="font-family: var(--font-display);">&lt;1kb</div>
+            <div class="text-sm text-[--color-text-secondary]">Runtime</div>
+          </div>
+          <div class="group">
+            <div class="text-3xl md:text-4xl font-bold heading-electric mb-2" style="font-family: var(--font-display);">MIT</div>
+            <div class="text-sm text-[--color-text-secondary]">Licensed</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="relative py-16 overflow-hidden">
+      <div class="absolute inset-0 bg-[--color-bg-primary]"></div>
+      <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[--color-border] to-transparent"></div>
+
+      <div class="relative mx-auto max-w-7xl px-6">
+        <div class="flex flex-col md:flex-row items-center justify-between gap-8">
+          <!-- Logo -->
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-[--color-electron-cyan] to-[--color-electron-purple] flex items-center justify-center">
+              <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"/>
+                <ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(0)"/>
+                <ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(60)"/>
+                <ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(120)"/>
+              </svg>
+            </div>
+            <span class="text-lg font-bold text-[--color-text-primary]" style="font-family: var(--font-display);">EIPC</span>
+          </div>
+
+          <!-- Links -->
+          <div class="flex items-center gap-8 text-sm">
+            <a href="/ipc/docs/getting-started/introduction" class="text-[--color-text-secondary] hover:text-[--color-electron-cyan] transition-colors">Documentation</a>
+            <a href="/ipc/docs/api/reference" class="text-[--color-text-secondary] hover:text-[--color-electron-cyan] transition-colors">API</a>
+            <a href="https://github.com/MarshallOfSound/ipc" class="text-[--color-text-secondary] hover:text-[--color-electron-cyan] transition-colors" target="_blank" rel="noopener noreferrer">GitHub</a>
+          </div>
+
+          <!-- Social -->
+          <div class="flex items-center gap-4">
+            <a href="https://github.com/MarshallOfSound/ipc" class="w-10 h-10 rounded-xl bg-[--color-bg-tertiary] border border-[--color-border] flex items-center justify-center text-[--color-text-secondary] hover:text-[--color-electron-cyan] hover:border-[--color-electron-cyan] transition-all" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"/>
+              </svg>
+            </a>
+          </div>
+        </div>
+
+        <!-- Bottom bar -->
+        <div class="mt-12 pt-8 border-t border-[--color-border] flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-[--color-text-tertiary]">
+          <p>Built with care for the Electron community.</p>
+          <p>Open source under MIT License.</p>
+        </div>
+      </div>
+    </footer>
+  </main>
+</BaseLayout>
+
+<style>
+  .bg-gradient-radial {
+    background: radial-gradient(circle, var(--tw-gradient-stops));
+  }
+</style>
+
+<script>
+  function initCopyButtons() {
+    document.querySelectorAll('.copy-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const text = btn.getAttribute('data-copy');
+        if (!text) return;
+
+        try {
+          await navigator.clipboard.writeText(text);
+          const copyIcon = btn.querySelector('.copy-icon');
+          const checkIcon = btn.querySelector('.check-icon');
+
+          if (copyIcon && checkIcon) {
+            copyIcon.classList.add('hidden');
+            checkIcon.classList.remove('hidden');
+
+            setTimeout(() => {
+              copyIcon.classList.remove('hidden');
+              checkIcon.classList.add('hidden');
+            }, 2000);
+          }
+        } catch (err) {
+          console.error('Failed to copy:', err);
+        }
+      });
+    });
+  }
+
+  initCopyButtons();
+  document.addEventListener('astro:after-swap', initCopyButtons);
+</script>

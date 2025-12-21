@@ -1,0 +1,75 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Sidebar from '../components/Sidebar.astro';
+import TableOfContents from '../components/TableOfContents.astro';
+
+interface Props {
+  title: string;
+  description?: string;
+  headings?: { depth: number; slug: string; text: string }[];
+}
+
+const { title, description, headings = [] } = Astro.props;
+const currentPath = Astro.url.pathname;
+---
+
+<BaseLayout title={title} description={description}>
+  <Header />
+  <Sidebar currentPath={currentPath} />
+
+  <main class="ml-64 min-h-screen pt-16 xl:mr-64">
+    <!-- Subtle background gradient -->
+    <div class="absolute inset-0 bg-gradient-to-br from-[--color-bg-primary] via-[--color-bg-primary] to-[--color-bg-secondary]/30 pointer-events-none"></div>
+
+    <article class="relative mx-auto max-w-3xl px-8 py-12">
+      <!-- Page header -->
+      <header class="mb-10">
+        <!-- Breadcrumb-style decoration -->
+        <div class="flex items-center gap-2 mb-4 text-xs text-[--color-text-tertiary]">
+          <span class="w-6 h-px bg-gradient-to-r from-[--color-electron-cyan] to-transparent"></span>
+          <span>Documentation</span>
+        </div>
+
+        <h1 class="text-4xl md:text-5xl font-extrabold text-[--color-text-primary] tracking-tight mb-4" style="font-family: var(--font-display);">
+          {title}
+        </h1>
+
+        {description && (
+          <p class="text-lg text-[--color-text-secondary] leading-relaxed max-w-2xl">
+            {description}
+          </p>
+        )}
+
+        <!-- Decorative line -->
+        <div class="mt-8 h-px bg-gradient-to-r from-[--color-electron-cyan]/50 via-[--color-electron-purple]/30 to-transparent"></div>
+      </header>
+
+      <!-- Content -->
+      <div class="prose">
+        <slot />
+      </div>
+
+      <!-- Footer navigation -->
+      <footer class="mt-16 pt-8 border-t border-[--color-border]">
+        <div class="flex items-center justify-between text-sm">
+          <a href="/ipc/docs/getting-started/introduction" class="group flex items-center gap-2 text-[--color-text-secondary] hover:text-[--color-electron-cyan] transition-colors">
+            <svg class="w-4 h-4 transform group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+            </svg>
+            <span>Previous</span>
+          </a>
+
+          <a href="/ipc/docs/getting-started/installation" class="group flex items-center gap-2 text-[--color-text-secondary] hover:text-[--color-electron-cyan] transition-colors">
+            <span>Next</span>
+            <svg class="w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+            </svg>
+          </a>
+        </div>
+      </footer>
+    </article>
+  </main>
+
+  <TableOfContents headings={headings} />
+</BaseLayout>

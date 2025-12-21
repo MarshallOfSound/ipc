@@ -1,0 +1,54 @@
+---
+import { createHighlighter, type LanguageRegistration } from 'shiki';
+import eipcGrammarJson from '../eipc.tmLanguage.json';
+
+interface Props {
+  code: string;
+  lang?: string;
+  theme?: string;
+}
+
+const { code, lang = 'typescript', theme = 'github-dark' } = Astro.props;
+
+// Convert grammar to Shiki format
+const eipcLang: LanguageRegistration = {
+  name: 'eipc',
+  scopeName: eipcGrammarJson.scopeName,
+  patterns: eipcGrammarJson.patterns,
+  repository: eipcGrammarJson.repository,
+};
+
+// Create highlighter with EIPC language
+const highlighter = await createHighlighter({
+  themes: [theme],
+  langs: [
+    eipcLang,
+    'typescript',
+    'javascript',
+    'bash',
+    'json',
+  ],
+});
+
+const html = highlighter.codeToHtml(code, {
+  lang,
+  theme,
+});
+---
+
+<Fragment set:html={html} />
+
+<style is:global>
+  .shiki {
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow-x: auto;
+    background: transparent !important;
+    border: none !important;
+  }
+  .shiki code {
+    display: block;
+    width: fit-content;
+    min-width: 100%;
+  }
+</style>

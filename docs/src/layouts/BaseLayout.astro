@@ -1,0 +1,91 @@
+---
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description = 'Type-safe Electron IPC made easy' } = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#050810" />
+    <link rel="icon" type="image/svg+xml" href="/ipc/favicon.svg" />
+
+    <!-- Preconnect to font CDN -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- Load professional fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+    <title>{title} | EIPC</title>
+
+    <!-- Prevent flash of wrong theme -->
+    <script is:inline>
+      const savedTheme = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+      if (savedTheme === 'light' || (!savedTheme && !prefersDark)) {
+        document.documentElement.classList.add('light');
+      }
+    </script>
+  </head>
+  <body class="min-h-screen antialiased">
+    <!-- Noise texture overlay for depth -->
+    <div class="noise-overlay" aria-hidden="true"></div>
+
+    <slot />
+
+    <!-- Theme toggle script -->
+    <script>
+      function initTheme() {
+        const toggle = document.getElementById('theme-toggle');
+        if (!toggle) return;
+
+        toggle.addEventListener('click', () => {
+          const isLight = document.documentElement.classList.toggle('light');
+          localStorage.setItem('theme', isLight ? 'light' : 'dark');
+
+          // Update meta theme-color
+          const meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) {
+            meta.setAttribute('content', isLight ? '#f8fafc' : '#050810');
+          }
+        });
+      }
+
+      // Run on initial load
+      initTheme();
+
+      // Re-run on navigation (for View Transitions)
+      document.addEventListener('astro:after-swap', initTheme);
+    </script>
+
+    <!-- Feature card hover effect script -->
+    <script>
+      function initFeatureCards() {
+        document.querySelectorAll('.feature-card').forEach(card => {
+          card.addEventListener('mousemove', (e) => {
+            const rect = card.getBoundingClientRect();
+            const x = ((e.clientX - rect.left) / rect.width) * 100;
+            const y = ((e.clientY - rect.top) / rect.height) * 100;
+            card.style.setProperty('--mouse-x', `${x}%`);
+            card.style.setProperty('--mouse-y', `${y}%`);
+          });
+        });
+      }
+
+      initFeatureCards();
+      document.addEventListener('astro:after-swap', initFeatureCards);
+    </script>
+  </body>
+</html>
+
+<style is:global>
+  @import '../styles/global.css';
+</style>

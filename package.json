@@ -18,6 +18,8 @@
     "langium:generate": "langium generate",
     "build": "yarn langium:generate && tsc",
     "build:vscode": "yarn workspace eipc-language build",
+    "build:docs": "yarn workspace eipc-docs build",
+    "dev:docs": "yarn workspace eipc-docs dev",
     "lint": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\" \"tests/**/*.tsx\"",
     "lint:fix": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\" \"tests/**/*.tsx\"",
     "test": "vitest run",
@@ -58,6 +60,7 @@
   },
   "packageManager": "yarn@4.10.3",
   "workspaces": [
-    "vscode-extension"
+    "vscode-extension",
+    "docs"
   ]
 }

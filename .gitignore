@@ -20,3 +20,6 @@ src/language/generated/
 
 # VS Code extension packages
 *.vsix
+
+# Claude Code local settings
+.claude/settings.local.json
