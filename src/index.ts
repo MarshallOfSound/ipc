@@ -1,5 +1,6 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { EventEmitter } from 'node:events';
 
 import { parseEipc, formatParseError, type ParseError } from './language/parser.js';
 import type { Module } from './language/generated/ast.js';
@@ -93,4 +94,141 @@ function disableEslint(content: string): string {
   return `/* eslint-disable */
 
 ${content}`;
+}
+
+export interface WiringWatcherEvents {
+  'change-detected': [file: string];
+  'file-added': [file: string];
+  'file-removed': [file: string];
+  'generation-start': [];
+  'generation-complete': [];
+  'generation-error': [error: Error];
+  error: [error: Error];
+}
+
+class WiringWatcher extends EventEmitter<WiringWatcherEvents> {
+  #closed = false;
+  #debounceTimer: ReturnType<typeof setTimeout> | null = null;
+  #fsWatcher: fs.FSWatcher | null = null;
+
+  get closed(): boolean {
+    return this.#closed;
+  }
+
+  setFsWatcher(watcher: fs.FSWatcher): void {
+    this.#fsWatcher = watcher;
+  }
+
+  setDebounceTimer(timer: ReturnType<typeof setTimeout> | null): void {
+    this.#debounceTimer = timer;
+  }
+
+  clearDebounceTimer(): void {
+    if (this.#debounceTimer) {
+      clearTimeout(this.#debounceTimer);
+      this.#debounceTimer = null;
+    }
+  }
+
+  close(): void {
+    this.#closed = true;
+    this.clearDebounceTimer();
+    if (this.#fsWatcher) {
+      this.#fsWatcher.close();
+      this.#fsWatcher = null;
+    }
+  }
+}
+
+/**
+ * Watch schema files for changes and regenerate wiring automatically.
+ * Returns a promise that resolves with a watcher once ready.
+ */
+export async function watchWiring(opts: WiringOptions): Promise<WiringWatcher> {
+  const watcher = new WiringWatcher();
+  const knownFiles = new Set<string>();
+
+  const generate = async () => {
+    if (watcher.closed) return;
+
+    watcher.emit('generation-start');
+    try {
+      await generateWiring(opts);
+      watcher.emit('generation-complete');
+    } catch (err) {
+      watcher.emit('generation-error', err as Error);
+    }
+  };
+
+  const scheduleGenerate = (file: string, eventType: 'change-detected' | 'file-added' | 'file-removed') => {
+    watcher.emit(eventType, file);
+
+    // Debounce rapid changes
+    watcher.clearDebounceTimer();
+    watcher.setDebounceTimer(
+      setTimeout(() => {
+        watcher.setDebounceTimer(null);
+        generate();
+      }, 100),
+    );
+  };
+
+  const scanForFiles = async (): Promise<string[]> => {
+    try {
+      const files = await fs.promises.readdir(opts.schemaFolder);
+      return files.filter((f) => path.extname(f) === IPC_SCHEMA_EXTENSION);
+    } catch {
+      return [];
+    }
+  };
+
+  // Ensure schema folder exists
+  if (!fs.existsSync(opts.schemaFolder)) {
+    await fs.promises.mkdir(opts.schemaFolder, { recursive: true });
+  }
+
+  // Initial scan
+  const initialFiles = await scanForFiles();
+  for (const file of initialFiles) {
+    knownFiles.add(file);
+  }
+
+  // Initial generation - throw on error so the promise rejects
+  await generateWiring(opts);
+
+  // Watch the directory
+  const fsWatcher = fs.watch(opts.schemaFolder, { persistent: true }, async (eventType, filename) => {
+    if (watcher.closed) return;
+    if (!filename) return;
+
+    if (path.extname(filename) === IPC_SCHEMA_EXTENSION) {
+      const fullPath = path.join(opts.schemaFolder, filename);
+      const exists = fs.existsSync(fullPath);
+
+      if (eventType === 'rename') {
+        if (exists && !knownFiles.has(filename)) {
+          // New file added
+          knownFiles.add(filename);
+          scheduleGenerate(filename, 'file-added');
+        } else if (exists && knownFiles.has(filename)) {
+          // File was replaced (common on macOS when editors save via temp file + rename)
+          scheduleGenerate(filename, 'change-detected');
+        } else if (!exists && knownFiles.has(filename)) {
+          // File was deleted
+          knownFiles.delete(filename);
+          scheduleGenerate(filename, 'file-removed');
+        }
+      } else if (eventType === 'change' && knownFiles.has(filename)) {
+        scheduleGenerate(filename, 'change-detected');
+      }
+    }
+  });
+
+  fsWatcher.on('error', (err) => {
+    watcher.emit('error', err);
+  });
+
+  watcher.setFsWatcher(fsWatcher);
+
+  return watcher;
 }
