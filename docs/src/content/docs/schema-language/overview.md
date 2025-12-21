@@ -70,6 +70,8 @@ Use `//` for single-line comments:
 // This is a comment
 module MyApp
 
+[RendererAPI]
+[ContextBridge]
 interface Example {
   // Method comment
   doSomething()

@@ -80,10 +80,10 @@ validator ProductionOnly = AND(
   origin is "app://myapp"
 )
 
+[RendererAPI]
+[Validator=ProductionOnly]
+[ContextBridge]
 interface SensitiveAPI {
-  [RendererAPI]
-  [Validator=ProductionOnly]
-
   deleteAllData()
 }
 ```
@@ -93,8 +93,9 @@ interface SensitiveAPI {
 Stores automatically generate React hooks for reactive state:
 
 ```eipc
+[RendererAPI]
+[ContextBridge]
 interface AppState {
-  [RendererAPI]
   [Store]
   windowState() -> WindowState
 }
