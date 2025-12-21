@@ -4,6 +4,13 @@
     "@semantic-release/commit-analyzer",
     "@semantic-release/release-notes-generator",
     "@semantic-release/npm",
+    [
+      "semantic-release-vsce",
+      {
+        "packageVsix": true,
+        "packagePath": "./vscode-extension"
+      }
+    ],
     "@semantic-release/github"
   ]
 }

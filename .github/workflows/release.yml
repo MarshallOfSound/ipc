@@ -20,9 +20,6 @@ jobs:
     needs: [tests]
     runs-on: ubuntu-latest
     environment: npm
-    outputs:
-      new-release-published: ${{ steps.semantic-release.outputs.new-release-published }}
-      new-release-version: ${{ steps.semantic-release.outputs.new-release-version }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
@@ -40,41 +37,11 @@ jobs:
       - name: Build
         run: yarn build
 
-      - uses: electron/semantic-trusted-release@3f059f0925051664cefb1fff736640755072223d
-        id: semantic-release
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
-  release-vscode:
-    name: Release VS Code Extension
-    needs: [release]
-    if: needs.release.outputs.new-release-published == 'true'
-    runs-on: ubuntu-latest
-    environment: vscode-marketplace
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-
-      - name: Setup Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version: '20'
-          cache: 'yarn'
-
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
-
-      - name: Build main package
-        run: yarn build
-
-      - name: Update VS Code extension version
-        run: |
-          cd vscode-extension
-          npm version ${{ needs.release.outputs.new-release-version }} --no-git-tag-version --allow-same-version
-
       - name: Build VS Code extension
         run: yarn build:vscode
 
-      - name: Publish VS Code extension
-        run: |
-          cd vscode-extension
-          npx vsce publish --skip-license -p ${{ secrets.VSCE_PAT }}
+      - uses: electron/semantic-trusted-release@5eceb399ac8de8863205cf6e34109bce473ba566 # v1.0.1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}

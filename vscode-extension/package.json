@@ -2,7 +2,7 @@
   "name": "eipc-language",
   "displayName": "EIPC Language Support",
   "description": "Language support for Electron IPC schema files (.eipc)",
-  "version": "0.0.1",
+  "version": "0.0.0-development",
   "publisher": "MarshallOfSound",
   "license": "MIT",
   "repository": {
