@@ -1,7 +1,7 @@
 ---
 import CodeBlock from './CodeBlock.astro';
 
-const heroCode = `module MyApp
+const schemaCode = `module MyApp
 
 [RendererAPI]
 [ContextBridge]
@@ -12,6 +12,44 @@ interface SystemAPI {
   [Store]
   windowState() -> WindowState
 }`;
+
+const mainCode = `import { SystemAPI } from '../ipc/browser/MyApp';
+
+SystemAPI.for(win.webContents).setImplementation({
+  async getAppVersion() {
+    return app.getVersion();
+  },
+
+  async showNotification(title, body) {
+    new Notification({ title, body }).show();
+  },
+
+  getInitialWindowStateState() {
+    return { isMaximized: win.isMaximized() };
+  },
+});`;
+
+const preloadCode = `import '../ipc/preload/MyApp';`;
+
+const rendererCode = `import { SystemAPI } from '../ipc/renderer/MyApp';
+import { useWindowStateStore } from '../ipc/renderer-hooks/MyApp';
+
+// Call methods
+const version = await SystemAPI.getAppVersion();
+await SystemAPI.showNotification('Hello', 'World');
+
+// Use reactive store
+function App() {
+  const state = useWindowStateStore();
+  return <div>{state.result?.isMaximized}</div>;
+}`;
+
+const tabs = [
+  { id: 'schema', label: 'api.eipc', lang: 'eipc', code: schemaCode },
+  { id: 'main', label: 'main.ts', lang: 'typescript', code: mainCode },
+  { id: 'preload', label: 'preload.ts', lang: 'typescript', code: preloadCode },
+  { id: 'renderer', label: 'renderer.tsx', lang: 'typescript', code: rendererCode },
+];
 ---
 
 <section class="relative flex items-center justify-center overflow-hidden">
@@ -22,10 +60,10 @@ interface SystemAPI {
   <div class="absolute inset-0 circuit-bg opacity-60"></div>
 
   <!-- Radial glow -->
-  <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full blur-3xl pointer-events-none" style="background: radial-gradient(circle, rgba(0, 229, 255, 0.08) 0%, transparent 70%);"></div>
+  <div class="absolute top-[350px] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full blur-3xl pointer-events-none" style="background: radial-gradient(circle, rgba(0, 229, 255, 0.08) 0%, transparent 70%);"></div>
 
   <!-- Simple Atom Visualization -->
-  <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] md:w-[500px] md:h-[500px] opacity-30 pointer-events-none">
+  <div class="absolute top-[350px] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] md:w-[500px] md:h-[500px] opacity-30 pointer-events-none">
     <svg class="w-full h-full" viewBox="0 0 400 400" fill="none">
       <!-- Static orbit rings -->
       <ellipse cx="200" cy="200" rx="160" ry="60" stroke="var(--color-electron-cyan)" stroke-width="1" opacity="0.5"/>
@@ -80,36 +118,90 @@ interface SystemAPI {
       </a>
     </div>
 
-    <!-- Code Preview Window -->
-    <div class="relative mx-auto max-w-3xl animate-fade-in-up animate-float" style="animation-delay: 0.5s;">
+    <!-- Code Preview Window with Tabs -->
+    <div class="relative mx-auto max-w-3xl animate-fade-in-up" style="animation-delay: 0.5s;">
       <!-- Glow effect behind window -->
       <div class="absolute -inset-4 rounded-3xl blur-2xl opacity-50" style="background: radial-gradient(circle, rgba(0, 229, 255, 0.15) 0%, transparent 70%);"></div>
 
       <div class="relative code-window rounded-2xl overflow-hidden shadow-2xl">
-        <!-- Window chrome -->
+        <!-- Window chrome with tabs -->
         <div class="code-window-header flex items-center gap-4 px-4 py-3 border-b border-white/10">
           <div class="traffic-lights">
             <div class="traffic-light traffic-light-red"></div>
             <div class="traffic-light traffic-light-yellow"></div>
             <div class="traffic-light traffic-light-green"></div>
           </div>
-          <div class="flex-1 flex items-center justify-center">
-            <span class="code-window-badge px-4 py-1.5 rounded-md text-xs font-medium">
-              api.eipc
-            </span>
+
+          <!-- Tabs -->
+          <div class="flex-1 flex items-center justify-center gap-1">
+            {tabs.map((tab, index) => (
+              <button
+                class:list={[
+                  'hero-tab px-3 py-1.5 rounded-md text-xs font-medium transition-all',
+                  index === 0 ? 'bg-white/10 text-white' : 'text-[#64748b] hover:text-[#94a3b8] hover:bg-white/5'
+                ]}
+                data-tab={tab.id}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
-          <div class="w-16"></div>
+
+          <div class="w-12"></div>
         </div>
 
-        <!-- Code content -->
-        <div class="p-4 text-left">
-          <CodeBlock code={heroCode} lang="eipc" />
+        <!-- Code panels -->
+        <div class="relative min-h-[280px]">
+          {tabs.map((tab, index) => (
+            <div
+              class:list={[
+                'hero-panel p-4 text-left',
+                index === 0 ? '' : 'hidden'
+              ]}
+              data-panel={tab.id}
+            >
+              <CodeBlock code={tab.code} lang={tab.lang} />
+            </div>
+          ))}
         </div>
       </div>
     </div>
   </div>
 
 </section>
+
+<script>
+  function initHeroTabs() {
+    const tabs = document.querySelectorAll('.hero-tab');
+    const panels = document.querySelectorAll('.hero-panel');
+
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        const targetId = tab.getAttribute('data-tab');
+
+        // Update tab styles
+        tabs.forEach(t => {
+          t.classList.remove('bg-white/10', 'text-white');
+          t.classList.add('text-[#64748b]');
+        });
+        tab.classList.add('bg-white/10', 'text-white');
+        tab.classList.remove('text-[#64748b]');
+
+        // Show/hide panels
+        panels.forEach(panel => {
+          if (panel.getAttribute('data-panel') === targetId) {
+            panel.classList.remove('hidden');
+          } else {
+            panel.classList.add('hidden');
+          }
+        });
+      });
+    });
+  }
+
+  initHeroTabs();
+  document.addEventListener('astro:after-swap', initHeroTabs);
+</script>
 
 <style>
   /* No custom styles needed - using utility classes */
