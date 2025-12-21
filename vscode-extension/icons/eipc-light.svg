@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Electron IPC: Two processes connected by bidirectional channel -->
+
+  <!-- Main process (left node with orbital) -->
+  <circle cx="7" cy="16" r="5" fill="none" stroke="#2B2E3A" stroke-width="1.5"/>
+  <circle cx="7" cy="16" r="2" fill="#2B2E3A"/>
+
+  <!-- Renderer process (right node with orbital) -->
+  <circle cx="25" cy="16" r="5" fill="none" stroke="#2B2E3A" stroke-width="1.5"/>
+  <circle cx="25" cy="16" r="2" fill="#2B2E3A"/>
+
+  <!-- IPC Channel - bidirectional arrows -->
+  <line x1="12" y1="14" x2="20" y2="14" stroke="#2B2E3A" stroke-width="1.5"/>
+  <line x1="20" y1="18" x2="12" y2="18" stroke="#2B2E3A" stroke-width="1.5"/>
+
+  <!-- Arrow heads -->
+  <polyline points="18,12 20,14 18,16" fill="none" stroke="#2B2E3A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="14,16 12,18 14,20" fill="none" stroke="#2B2E3A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

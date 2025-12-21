@@ -17,6 +17,7 @@
   "scripts": {
     "langium:generate": "langium generate",
     "build": "yarn langium:generate && tsc",
+    "build:vscode": "yarn workspace eipc-language build",
     "lint": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\" \"tests/**/*.tsx\"",
     "lint:fix": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\" \"tests/**/*.tsx\"",
     "test": "vitest run",
@@ -44,6 +45,7 @@
     "prettier": "^3.5.3",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
+    "semantic-release-vsce": "^6.0.20",
     "typescript": "^5.8.3",
     "vitest": "^4.0.16",
     "zod": "^4.2.1"
@@ -55,5 +57,8 @@
   "peerDependencies": {
     "electron": ">=18.0.3"
   },
-  "packageManager": "yarn@4.10.3"
+  "packageManager": "yarn@4.10.3",
+  "workspaces": [
+    "vscode-extension"
+  ]
 }

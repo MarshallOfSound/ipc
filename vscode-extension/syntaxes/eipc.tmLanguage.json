@@ -1,0 +1,361 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "EIPC",
+  "scopeName": "source.eipc",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#module" },
+    { "include": "#validator" },
+    { "include": "#enum" },
+    { "include": "#structure" },
+    { "include": "#subtype" },
+    { "include": "#zod-reference" },
+    { "include": "#interface" },
+    { "include": "#strings" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.eipc",
+          "match": "//.*$"
+        },
+        {
+          "name": "comment.block.eipc",
+          "begin": "/\\*",
+          "end": "\\*/"
+        }
+      ]
+    },
+    "module": {
+      "patterns": [
+        {
+          "match": "^\\s*(module)\\s+([a-zA-Z_][a-zA-Z0-9_.]*)",
+          "captures": {
+            "1": { "name": "keyword.control.module.eipc" },
+            "2": { "name": "entity.name.namespace.eipc" }
+          }
+        }
+      ]
+    },
+    "validator": {
+      "patterns": [
+        {
+          "begin": "^\\s*(validator)\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\s*(=)",
+          "beginCaptures": {
+            "1": { "name": "keyword.control.validator.eipc" },
+            "2": { "name": "entity.name.function.validator.eipc" },
+            "3": { "name": "keyword.operator.assignment.eipc" }
+          },
+          "end": "(?=^\\s*(?:module|validator|enum|structure|subtype|zod_reference|interface|\\[))",
+          "patterns": [
+            { "include": "#validator-body" }
+          ]
+        }
+      ]
+    },
+    "validator-body": {
+      "patterns": [
+        { "include": "#comments" },
+        {
+          "name": "keyword.control.logic.eipc",
+          "match": "\\b(AND|OR)\\b"
+        },
+        {
+          "name": "keyword.control.condition.eipc",
+          "match": "\\b(is|startsWith|dynamic_global)\\b"
+        },
+        {
+          "name": "variable.other.condition.eipc",
+          "match": "\\b(is_main_frame|is_packaged|is_about_blank|origin|protocol|hostname|href)\\b"
+        },
+        {
+          "name": "constant.language.boolean.eipc",
+          "match": "\\b(true|false)\\b"
+        },
+        { "include": "#strings" }
+      ]
+    },
+    "enum": {
+      "patterns": [
+        {
+          "begin": "^\\s*(enum)\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\s*(\\{)",
+          "beginCaptures": {
+            "1": { "name": "keyword.control.enum.eipc" },
+            "2": { "name": "entity.name.type.enum.eipc" },
+            "3": { "name": "punctuation.definition.block.eipc" }
+          },
+          "end": "(\\})",
+          "endCaptures": {
+            "1": { "name": "punctuation.definition.block.eipc" }
+          },
+          "patterns": [
+            { "include": "#comments" },
+            {
+              "match": "([a-zA-Z_][a-zA-Z0-9_]*)(?:\\s*(=)\\s*(\"[^\"]*\"))?",
+              "captures": {
+                "1": { "name": "variable.other.enummember.eipc" },
+                "2": { "name": "keyword.operator.assignment.eipc" },
+                "3": { "name": "string.quoted.double.eipc" }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "structure": {
+      "patterns": [
+        {
+          "begin": "^\\s*(structure)\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\s*(\\{)",
+          "beginCaptures": {
+            "1": { "name": "keyword.control.structure.eipc" },
+            "2": { "name": "entity.name.type.struct.eipc" },
+            "3": { "name": "punctuation.definition.block.eipc" }
+          },
+          "end": "(\\})",
+          "endCaptures": {
+            "1": { "name": "punctuation.definition.block.eipc" }
+          },
+          "patterns": [
+            { "include": "#structure-body" }
+          ]
+        }
+      ]
+    },
+    "structure-body": {
+      "patterns": [
+        { "include": "#comments" },
+        {
+          "match": "([a-zA-Z_][a-zA-Z0-9_]*)(\\?)?\\s*(:)\\s*(unknown)(\\[\\])?(\\?)?",
+          "captures": {
+            "1": { "name": "variable.other.property.eipc" },
+            "2": { "name": "keyword.operator.optional.eipc" },
+            "3": { "name": "punctuation.separator.colon.eipc" },
+            "4": { "name": "invalid.deprecated.unknown.eipc" },
+            "5": { "name": "keyword.operator.array.eipc" },
+            "6": { "name": "keyword.operator.nullable.eipc" }
+          }
+        },
+        {
+          "match": "([a-zA-Z_][a-zA-Z0-9_]*)(\\?)?\\s*(:)\\s*(string|number|boolean)(\\[\\])?(\\?)?",
+          "captures": {
+            "1": { "name": "variable.other.property.eipc" },
+            "2": { "name": "keyword.operator.optional.eipc" },
+            "3": { "name": "punctuation.separator.colon.eipc" },
+            "4": { "name": "support.type.primitive.eipc" },
+            "5": { "name": "keyword.operator.array.eipc" },
+            "6": { "name": "keyword.operator.nullable.eipc" }
+          }
+        },
+        {
+          "match": "([a-zA-Z_][a-zA-Z0-9_]*)(\\?)?\\s*(:)\\s*([a-zA-Z_][a-zA-Z0-9_]*)(\\[\\])?(\\?)?",
+          "captures": {
+            "1": { "name": "variable.other.property.eipc" },
+            "2": { "name": "keyword.operator.optional.eipc" },
+            "3": { "name": "punctuation.separator.colon.eipc" },
+            "4": { "name": "entity.name.type.eipc" },
+            "5": { "name": "keyword.operator.array.eipc" },
+            "6": { "name": "keyword.operator.nullable.eipc" }
+          }
+        },
+        {
+          "begin": "(\\{)",
+          "end": "(\\})",
+          "beginCaptures": {
+            "1": { "name": "punctuation.definition.block.eipc" }
+          },
+          "endCaptures": {
+            "1": { "name": "punctuation.definition.block.eipc" }
+          },
+          "patterns": [
+            { "include": "#structure-body" }
+          ]
+        }
+      ]
+    },
+    "subtype": {
+      "patterns": [
+        {
+          "begin": "^\\s*(subtype)\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\s*(=)\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s*(\\()",
+          "beginCaptures": {
+            "1": { "name": "keyword.control.subtype.eipc" },
+            "2": { "name": "entity.name.type.subtype.eipc" },
+            "3": { "name": "keyword.operator.assignment.eipc" },
+            "4": { "name": "entity.name.type.eipc" },
+            "5": { "name": "punctuation.definition.parameters.eipc" }
+          },
+          "end": "(\\))",
+          "endCaptures": {
+            "1": { "name": "punctuation.definition.parameters.eipc" }
+          },
+          "patterns": [
+            { "include": "#comments" },
+            {
+              "match": "([a-zA-Z_][a-zA-Z0-9_]*)\\s*(:)\\s*(-?[0-9]+|\"[^\"]*\"|true|false)",
+              "captures": {
+                "1": { "name": "variable.other.constraint.eipc" },
+                "2": { "name": "punctuation.separator.colon.eipc" },
+                "3": { "name": "constant.numeric.eipc" }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "zod-reference": {
+      "patterns": [
+        {
+          "begin": "^\\s*(zod_reference)\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\s*(\\{)",
+          "beginCaptures": {
+            "1": { "name": "keyword.control.zod-reference.eipc" },
+            "2": { "name": "entity.name.type.zod.eipc" },
+            "3": { "name": "punctuation.definition.block.eipc" }
+          },
+          "end": "(\\})",
+          "endCaptures": {
+            "1": { "name": "punctuation.definition.block.eipc" }
+          },
+          "patterns": [
+            { "include": "#comments" },
+            {
+              "match": "(import|type|schema)\\s*(=)\\s*(\"[^\"]*\")",
+              "captures": {
+                "1": { "name": "keyword.other.eipc" },
+                "2": { "name": "keyword.operator.assignment.eipc" },
+                "3": { "name": "string.quoted.double.eipc" }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "interface": {
+      "patterns": [
+        {
+          "begin": "(\\[)([a-zA-Z_][a-zA-Z0-9_]*)(?:(=)([a-zA-Z_][a-zA-Z0-9_]*))?(\\])",
+          "beginCaptures": {
+            "1": { "name": "punctuation.definition.annotation.eipc" },
+            "2": { "name": "entity.name.tag.eipc" },
+            "3": { "name": "keyword.operator.assignment.eipc" },
+            "4": { "name": "entity.name.function.validator.eipc" },
+            "5": { "name": "punctuation.definition.annotation.eipc" }
+          },
+          "end": "(?=\\[|interface|$)",
+          "patterns": []
+        },
+        {
+          "begin": "^\\s*(interface)\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\s*(\\{)",
+          "beginCaptures": {
+            "1": { "name": "keyword.control.interface.eipc" },
+            "2": { "name": "entity.name.type.interface.eipc" },
+            "3": { "name": "punctuation.definition.block.eipc" }
+          },
+          "end": "(\\})",
+          "endCaptures": {
+            "1": { "name": "punctuation.definition.block.eipc" }
+          },
+          "patterns": [
+            { "include": "#interface-body" }
+          ]
+        }
+      ]
+    },
+    "interface-body": {
+      "patterns": [
+        { "include": "#comments" },
+        {
+          "begin": "(\\[)([a-zA-Z_][a-zA-Z0-9_]*)(\\])",
+          "beginCaptures": {
+            "1": { "name": "punctuation.definition.annotation.eipc" },
+            "2": { "name": "entity.name.tag.eipc" },
+            "3": { "name": "punctuation.definition.annotation.eipc" }
+          },
+          "end": "(?=\\[|[a-zA-Z_]|\\})",
+          "patterns": []
+        },
+        {
+          "begin": "([a-zA-Z_][a-zA-Z0-9_]*)\\s*(\\()",
+          "beginCaptures": {
+            "1": { "name": "entity.name.function.method.eipc" },
+            "2": { "name": "punctuation.definition.parameters.eipc" }
+          },
+          "end": "(\\))\\s*(?:(->)\\s*(unknown)(\\[\\])?(\\?)?|(->)\\s*(string|number|boolean)(\\[\\])?(\\?)?|(->)\\s*([a-zA-Z_][a-zA-Z0-9_]*)(\\[\\])?(\\?)?)?(?=\\s*$|\\s*\\[|\\s*\\})",
+          "endCaptures": {
+            "1": { "name": "punctuation.definition.parameters.eipc" },
+            "2": { "name": "keyword.operator.arrow.eipc" },
+            "3": { "name": "invalid.deprecated.unknown.eipc" },
+            "4": { "name": "keyword.operator.array.eipc" },
+            "5": { "name": "keyword.operator.nullable.eipc" },
+            "6": { "name": "keyword.operator.arrow.eipc" },
+            "7": { "name": "support.type.primitive.eipc" },
+            "8": { "name": "keyword.operator.array.eipc" },
+            "9": { "name": "keyword.operator.nullable.eipc" },
+            "10": { "name": "keyword.operator.arrow.eipc" },
+            "11": { "name": "entity.name.type.eipc" },
+            "12": { "name": "keyword.operator.array.eipc" },
+            "13": { "name": "keyword.operator.nullable.eipc" }
+          },
+          "patterns": [
+            { "include": "#method-params" }
+          ]
+        }
+      ]
+    },
+    "method-params": {
+      "patterns": [
+        {
+          "match": "([a-zA-Z_][a-zA-Z0-9_]*)(\\?)?\\s*(:)\\s*(unknown)(\\[\\])?(\\?)?",
+          "captures": {
+            "1": { "name": "variable.parameter.eipc" },
+            "2": { "name": "keyword.operator.optional.eipc" },
+            "3": { "name": "punctuation.separator.colon.eipc" },
+            "4": { "name": "invalid.deprecated.unknown.eipc" },
+            "5": { "name": "keyword.operator.array.eipc" },
+            "6": { "name": "keyword.operator.nullable.eipc" }
+          }
+        },
+        {
+          "match": "([a-zA-Z_][a-zA-Z0-9_]*)(\\?)?\\s*(:)\\s*(string|number|boolean)(\\[\\])?(\\?)?",
+          "captures": {
+            "1": { "name": "variable.parameter.eipc" },
+            "2": { "name": "keyword.operator.optional.eipc" },
+            "3": { "name": "punctuation.separator.colon.eipc" },
+            "4": { "name": "support.type.primitive.eipc" },
+            "5": { "name": "keyword.operator.array.eipc" },
+            "6": { "name": "keyword.operator.nullable.eipc" }
+          }
+        },
+        {
+          "match": "([a-zA-Z_][a-zA-Z0-9_]*)(\\?)?\\s*(:)\\s*([a-zA-Z_][a-zA-Z0-9_]*)(\\[\\])?(\\?)?",
+          "captures": {
+            "1": { "name": "variable.parameter.eipc" },
+            "2": { "name": "keyword.operator.optional.eipc" },
+            "3": { "name": "punctuation.separator.colon.eipc" },
+            "4": { "name": "entity.name.type.eipc" },
+            "5": { "name": "keyword.operator.array.eipc" },
+            "6": { "name": "keyword.operator.nullable.eipc" }
+          }
+        },
+        {
+          "match": ",",
+          "name": "punctuation.separator.comma.eipc"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.eipc",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.eipc",
+              "match": "\\\\."
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
