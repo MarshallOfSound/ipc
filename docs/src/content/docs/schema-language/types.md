@@ -17,6 +17,55 @@ The built-in primitive types:
 | `boolean` | Boolean value |
 | `Type?` | Optional/nullable version of any type |
 
+## Arrays
+
+Append `[]` to any type to make it an array:
+
+```eipc
+[RendererAPI]
+[ContextBridge]
+interface Files {
+  listFiles(directory: string) -> string[]
+  getRecentDocuments() -> Document[]
+  getTags() -> Tag[]
+}
+```
+
+Arrays work with all types — primitives, enums, structures, and subtypes:
+
+```eipc
+structure Document {
+  id: number
+  name: string
+  tags: string[]
+  authors: Author[]
+}
+```
+
+## Records
+
+Use `{ string -> Type }` to define a key-value map where keys are strings:
+
+```eipc
+structure AppSettings {
+  theme: string
+  shortcuts: { string -> string }
+  windowStates: { string -> WindowState }
+}
+```
+
+This generates TypeScript `Record<string, T>` types:
+
+```typescript
+interface AppSettings {
+  theme: string;
+  shortcuts: Record<string, string>;
+  windowStates: Record<string, WindowState>;
+}
+```
+
+Records are useful for dynamic keys like window IDs, plugin names, or user preferences.
+
 ## Enums
 
 Enums define a fixed set of allowed values:
