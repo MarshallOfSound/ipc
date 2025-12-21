@@ -73,6 +73,8 @@ jobs:
 
       - name: Build VS Code extension
         run: yarn && yarn build:vscode
+        env:
+          YARN_ENABLE_HARDENED_MODE: 0
 
       - name: Publish VS Code extension
         run: |
