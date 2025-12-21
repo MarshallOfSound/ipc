@@ -1229,6 +1229,8 @@ __metadata:
     zod: "npm:^4.2.1"
   peerDependencies:
     electron: ">=18.0.3"
+  bin:
+    generate-ipc: ./dist/cli.js
   languageName: unknown
   linkType: soft
 
