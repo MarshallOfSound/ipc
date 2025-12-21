@@ -17,3 +17,6 @@ tests/e2e/test-app/dist/
 tests/e2e/test-app/ipc/
 # Langium generated files
 src/language/generated/
+
+# VS Code extension packages
+*.vsix
