@@ -72,7 +72,7 @@ jobs:
           npm version ${{ needs.release.outputs.new-release-version }} --no-git-tag-version --allow-same-version
 
       - name: Build VS Code extension
-        run: yarn build:vscode
+        run: yarn && yarn build:vscode
 
       - name: Publish VS Code extension
         run: |
