@@ -45,7 +45,6 @@
     "prettier": "^3.5.3",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
-    "semantic-release-vsce": "^6.0.20",
     "typescript": "^5.8.3",
     "vitest": "^4.0.16",
     "zod": "^4.2.1"
