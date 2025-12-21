@@ -44,7 +44,7 @@ From this schema, EIPC generates:
 Your entire IPC layer is fully typed. TypeScript will catch errors at compile time:
 
 ```typescript
-import { Settings } from './ipc/renderer/MyApp';
+import { Settings } from '../ipc/renderer/MyApp';
 
 // ✅ TypeScript knows the types
 const theme = await Settings.getTheme();

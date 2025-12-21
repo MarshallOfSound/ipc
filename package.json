@@ -11,6 +11,9 @@
       "default": "./dist/index.js"
     }
   },
+  "bin": {
+    "generate-ipc": "./dist/cli.js"
+  },
   "repository": "https://github.com/MarshallOfSound/ipc",
   "author": "Samuel Attard",
   "license": "MIT",

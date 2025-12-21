@@ -40,7 +40,7 @@ A store method defines:
 Provide the initial state in your implementation:
 
 ```typescript
-import { Auth } from './ipc/browser/MyApp';
+import { Auth } from '../ipc/browser/MyApp';
 
 const dispatcher = Auth.for(webContents).setImplementation({
   async login(email, password) {
@@ -96,7 +96,7 @@ The update method is named `update` + store name (PascalCase) + `Store`.
 Import the generated hook:
 
 ```tsx
-import { useCurrentUserStore } from './ipc/renderer-hooks/MyApp';
+import { useCurrentUserStore } from '../ipc/renderer-hooks/MyApp';
 
 function UserProfile() {
   const state = useCurrentUserStore();
@@ -137,7 +137,7 @@ Always handle all three states in your components.
 You can also use stores without React:
 
 ```typescript
-import { Auth } from './ipc/renderer/MyApp';
+import { Auth } from '../ipc/renderer/MyApp';
 
 // Get current state (async)
 const user = await Auth.currentUser.getState();
@@ -185,7 +185,7 @@ interface App {
 ### Main Process
 
 ```typescript
-import { App } from './ipc/browser/MyApp';
+import { App } from '../ipc/browser/MyApp';
 
 let currentSettings: AppSettings = {
   theme: 'System',
@@ -207,8 +207,8 @@ const dispatcher = App.for(win.webContents).setImplementation({
 ### React Component
 
 ```tsx
-import { useSettingsStore } from './ipc/renderer-hooks/MyApp';
-import { App } from './ipc/renderer/MyApp';
+import { useSettingsStore } from '../ipc/renderer-hooks/MyApp';
+import { App } from '../ipc/renderer/MyApp';
 
 function SettingsPanel() {
   const state = useSettingsStore();
@@ -256,7 +256,7 @@ import {
   useUserStore,
   useSettingsStore,
   useNotificationsStore,
-} from './ipc/renderer-hooks/MyApp';
+} from '../ipc/renderer-hooks/MyApp';
 ```
 
 ## Stores vs Events

@@ -1,17 +1,51 @@
 ---
 title: API Reference
-description: Programmatic API for EIPC code generation.
+description: CLI and programmatic API for EIPC code generation.
 order: 1
 ---
 
-## generateWiring
+## CLI
 
-The main function to generate IPC wiring from your schema files.
+The `generate-ipc` command generates IPC wiring from your schema files.
+
+```bash
+generate-ipc <schemaDir> <outputDir>
+```
+
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `schemaDir` | Directory containing `.eipc` schema files |
+| `outputDir` | Output directory for generated code |
+
+### Example
+
+```bash
+generate-ipc src/schema src/ipc
+```
+
+### Package.json Integration
+
+```json
+{
+  "scripts": {
+    "generate:ipc": "generate-ipc src/schema src/ipc"
+  }
+}
+```
+
+## Programmatic API
+
+For advanced use cases, you can use the programmatic API directly.
 
 ```typescript
 import { generateWiring } from '@marshallofsound/ipc';
 
-await generateWiring(options);
+await generateWiring({
+  schemaFolder: './src/schema',
+  wiringFolder: './src/ipc',
+});
 ```
 
 ### Options
@@ -19,68 +53,54 @@ await generateWiring(options);
 ```typescript
 interface WiringOptions {
   /**
-   * Directory containing .eipc schema files
+   * Absolute path to a folder containing .eipc schema files
    */
-  schemaDir: string;
+  schemaFolder: string;
 
   /**
-   * Output directory for generated code
+   * Absolute path to output folder for generated code
    */
-  outputDir: string;
-
-  /**
-   * Optional: Custom module resolution
-   */
-  moduleResolver?: (moduleName: string) => string;
+  wiringFolder: string;
 }
 ```
 
-### Example
+## Generated Output
 
-```typescript
-import { generateWiring } from '@marshallofsound/ipc';
-
-await generateWiring({
-  schemaDir: './src/schema',
-  outputDir: './ipc',
-});
-```
-
-### Generated Output
-
-The function creates the following directory structure:
+Both the CLI and programmatic API create the following directory structure:
 
 ```
-ipc/
-├── browser/           # Main process code
-│   └── {Module}/
-│       └── {Interface}.ts
-├── preload/           # Preload script code
-│   ├── init.ts        # Initialization entry point
-│   └── {Module}/
-│       └── {Interface}.ts
-├── renderer/          # Renderer process types
-│   └── {Module}/
-│       └── {Interface}.ts
-├── renderer-hooks/    # React hooks (for [Store] methods)
-│   └── {Module}/
-│       └── {Interface}.ts
-├── common/            # Shared types
-│   └── {Module}/
-│       └── {Type}.ts
-└── _internal/         # Internal utilities
-  └── common-runtime/
+src/ipc/
+├── browser/          # Main process implementations
+│   └── {module}.ts
+├── preload/          # Preload script code
+│   └── {module}.ts
+├── renderer/         # Renderer process client
+│   └── {module}.ts
+├── renderer-hooks/   # React hooks for stores
+│   └── {module}.ts
+├── common/           # Shared types
+│   └── {module}.ts
+├── common-runtime/   # Runtime utilities
+│   └── {module}.ts
+└── _internal/        # Internal generated code
+    └── ...
 ```
 
 ## Error Handling
 
-The function throws on schema parsing errors:
+Both methods throw on schema parsing errors with line/column information:
 
 ```typescript
 try {
   await generateWiring(options);
 } catch (error) {
   console.error('Schema error:', error.message);
-  // Error includes line/column information
 }
+```
+
+CLI exits with code 1 on error:
+
+```bash
+$ generate-ipc src/schema src/ipc
+Error generating IPC wiring: Expected 'interface' but found 'foo' at line 5, column 1
 ```

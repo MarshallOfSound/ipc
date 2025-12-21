@@ -56,7 +56,7 @@ interface Settings {
 Import and use in your renderer:
 
 ```typescript
-import { Settings } from './ipc/renderer/MyApp';
+import { Settings } from '../ipc/renderer/MyApp';
 
 const theme = await Settings.getTheme();
 ```
@@ -113,7 +113,7 @@ interface MyAPI {
 In your main process, implement the interface:
 
 ```typescript
-import { Settings } from './ipc/browser/MyApp';
+import { Settings } from '../ipc/browser/MyApp';
 import { nativeTheme, app } from 'electron';
 
 Settings.for(mainWindow.webContents).setImplementation({
@@ -175,7 +175,7 @@ This must be bundled before use. See [Installation](/ipc/docs/getting-started/in
 Call the API from your renderer process:
 
 ```typescript
-import { Settings } from './ipc/renderer/MyApp';
+import { Settings } from '../ipc/renderer/MyApp';
 
 // Fully typed!
 const theme = await Settings.getTheme();
@@ -210,7 +210,7 @@ interface App {
 Each interface can be imported separately:
 
 ```typescript
-import { Settings, App } from './ipc/renderer/MyApp';
+import { Settings, App } from '../ipc/renderer/MyApp';
 
 await Settings.getTheme();
 await App.getVersion();

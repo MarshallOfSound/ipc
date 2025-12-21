@@ -22,7 +22,7 @@ interface DataService {
 ### Usage
 
 ```typescript
-import { DataService } from './ipc/renderer/MyApp';
+import { DataService } from '../ipc/renderer/MyApp';
 
 // Renderer - returns a Promise
 const data = await DataService.fetchData(123);
@@ -69,7 +69,7 @@ interface Config {
 ### Usage
 
 ```typescript
-import { Config } from './ipc/renderer/MyApp';
+import { Config } from '../ipc/renderer/MyApp';
 
 // Renderer - returns value directly (not a Promise)
 const config = Config.getConfigSync();
@@ -137,7 +137,7 @@ This is useful for:
 - **Type generation** — Generate types for methods not yet available
 
 ```typescript
-import { Features } from './ipc/renderer/MyApp';
+import { Features } from '../ipc/renderer/MyApp';
 
 await Features.existingFeature(); // Works
 
@@ -235,7 +235,7 @@ interface API {
 Invalid arguments are rejected before reaching your implementation:
 
 ```typescript
-import { API } from './ipc/renderer/MyApp';
+import { API } from '../ipc/renderer/MyApp';
 
 // Throws validation error
 await API.createUser('John', 'invalid-email', -5);

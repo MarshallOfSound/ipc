@@ -56,17 +56,23 @@ interface FileSystem {
 
 ### 2. Generate the wiring
 
-```ts
-import { generateWiring } from '@marshallofsound/ipc';
-import path from 'path';
+Add a script to your `package.json`:
 
-await generateWiring({
-    schemaFolder: path.resolve(__dirname, 'schemas'),
-    wiringFolder: path.resolve(__dirname, 'src/ipc'),
-});
+```json
+{
+  "scripts": {
+    "generate:ipc": "generate-ipc schemas src/ipc"
+  }
+}
 ```
 
-> **Tip:** When using Electron Forge, call this in the `generateAssets` hook in your `forge.config.js`.
+Then run it:
+
+```bash
+npm run generate:ipc
+```
+
+Add `src/ipc/` to your `.gitignore`.
 
 ### 3. Implement in main process
 
@@ -145,8 +151,10 @@ new BrowserWindow({
 ### 5. Call from renderer
 
 ```ts
-// renderer.ts (or browser devtools)
-const content = await window.myapp.FileSystem.ReadConfig();
+// renderer.ts
+import { FileSystem } from '../ipc/renderer/myapp';
+
+const content = await FileSystem.ReadConfig();
 ```
 
 ## Schema Reference
@@ -349,7 +357,7 @@ interface MyAPI {
 ## Generated Code Structure
 
 ```
-ipc/
+src/ipc/
 ├── browser/           # Main process - import from here
 │   └── myapp.ts
 ├── preload/           # Preload scripts - import to initialize
@@ -366,7 +374,7 @@ ipc/
 ## Main Process API
 
 ```ts
-import { MyAPI } from './ipc/browser/myapp';
+import { MyAPI } from '../ipc/browser/myapp';
 
 // Set up handlers for a specific frame
 const dispatcher = MyAPI.for(mainWindow.webContents.mainFrame).setImplementation({
@@ -393,7 +401,7 @@ const existing = MyAPI.getDispatcher(frame);
 For `[Store]` methods, React hooks are generated:
 
 ```tsx
-import { useCurrentUserStore } from './ipc/renderer-hooks/myapp';
+import { useCurrentUserStore } from '../ipc/renderer-hooks/myapp';
 
 function UserDisplay() {
     const state = useCurrentUserStore();

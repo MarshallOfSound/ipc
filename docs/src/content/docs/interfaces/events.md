@@ -33,7 +33,7 @@ Events don't have return types — they're one-way from main to renderer.
 In the main process, use the dispatcher to send events:
 
 ```typescript
-import { Notifications } from './ipc/browser/MyApp';
+import { Notifications } from '../ipc/browser/MyApp';
 
 // Set up implementation and get dispatcher
 const dispatcher = Notifications.for(mainWindow.webContents).setImplementation({
@@ -62,7 +62,7 @@ The schema event name is used to generate both the dispatch method and the liste
 In the renderer, import the interface and subscribe to events using the auto-generated `on` + EventName methods:
 
 ```typescript
-import { Notifications } from './ipc/renderer/MyApp';
+import { Notifications } from '../ipc/renderer/MyApp';
 
 // Subscribe to events
 Notifications.onNewNotification((title, body) => {
@@ -95,7 +95,7 @@ Since event listeners return an unsubscribe function, they work perfectly with R
 
 ```tsx
 import { useEffect, useState } from 'react';
-import { Notifications } from './ipc/renderer/MyApp';
+import { Notifications } from '../ipc/renderer/MyApp';
 
 function NotificationToast() {
   const [message, setMessage] = useState<string | null>(null);
@@ -199,7 +199,7 @@ const dispatcher = Downloads.for(webContents).setImplementation({
 Renderer:
 
 ```typescript
-import { Downloads } from './ipc/renderer/MyApp';
+import { Downloads } from '../ipc/renderer/MyApp';
 
 const downloadId = await Downloads.startDownload('https://example.com/file.zip');
 

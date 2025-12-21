@@ -36,13 +36,27 @@ interface Settings {
 
 ## 2. Generate the Wiring
 
-Run the generation script:
+Add a generation script to your `package.json`:
+
+```json
+{
+  "scripts": {
+    "generate:ipc": "generate-ipc src/schema src/ipc"
+  }
+}
+```
+
+Then run it:
 
 ```bash
 npm run generate:ipc
 ```
 
-This creates the `ipc/` directory with all generated code.
+This creates the `src/ipc/` directory with all generated code. Add it to your `.gitignore`:
+
+```
+src/ipc/
+```
 
 ## 3. Implement in Main Process
 
@@ -55,28 +69,28 @@ import * as path from 'path';
 
 app.whenReady().then(() => {
   const win = new BrowserWindow({
-  webPreferences: {
-    preload: path.join(__dirname, 'preload.js'),
-  },
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+    },
   });
 
   // Set up the implementation for this window
   Settings.for(win.webContents).setImplementation({
-  async getTheme() {
-    return nativeTheme.themeSource;
-  },
+    async getTheme() {
+      return nativeTheme.themeSource;
+    },
 
-  async setTheme(theme) {
-    nativeTheme.themeSource = theme;
-  },
+    async setTheme(theme) {
+      nativeTheme.themeSource = theme;
+    },
 
-  async getAppInfo() {
-    return {
-    version: app.getVersion(),
-    platform: process.platform,
-    locale: app.getLocale(),
-    };
-  },
+    async getAppInfo() {
+      return {
+        version: app.getVersion(),
+        platform: process.platform,
+        locale: app.getLocale(),
+      };
+    },
   });
 
   win.loadFile('index.html');
@@ -113,7 +127,7 @@ await esbuild.build({
 In your renderer process:
 
 ```typescript
-import { Settings } from './ipc/renderer/MyApp';
+import { Settings } from '../ipc/renderer/MyApp';
 
 // Fully typed!
 const theme = await Settings.getTheme();

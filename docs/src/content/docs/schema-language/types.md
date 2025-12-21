@@ -203,7 +203,7 @@ interface Audio {
 If a renderer passes invalid data, the call is rejected before reaching your implementation:
 
 ```typescript
-import { Audio } from './ipc/renderer/MyApp';
+import { Audio } from '../ipc/renderer/MyApp';
 
 // Throws validation error - volume out of range
 await Audio.setVolume(150);

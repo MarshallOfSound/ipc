@@ -34,11 +34,11 @@ my-electron-app/
 │   ├── renderer/       # Renderer process code
 │   └── schema/         # Your .eipc schema files
 │       └── api.eipc
-├── ipc/                # Generated code (auto-created)
-│   ├── browser/
-│   ├── preload/
-│   ├── renderer/
-│   └── ...
+│   └── ipc/            # Generated code (auto-created)
+│       ├── browser/
+│       ├── preload/
+│       ├── renderer/
+│       └── ...
 └── package.json
 ```
 
@@ -54,33 +54,26 @@ Ensure your `tsconfig.json` includes the generated IPC directory:
   "esModuleInterop": true,
   "strict": true
   },
-  "include": ["src/**/*", "ipc/**/*"]
+  "include": ["src/**/*"]
 }
 ```
 
 ## Build Integration
 
-Add a script to generate your IPC wiring:
+Add the `generate-ipc` CLI to your build scripts:
 
 ```json
 {
   "scripts": {
-  "generate:ipc": "node scripts/generate-ipc.js",
-  "build": "npm run generate:ipc && your-build-command"
+    "generate:ipc": "generate-ipc src/schema src/ipc",
+    "build": "npm run generate:ipc && your-build-command"
   }
 }
 ```
 
-Create `scripts/generate-ipc.js`:
-
-```javascript
-import { generateWiring } from '@marshallofsound/ipc';
-
-await generateWiring({
-  schemaDir: './src/schema',
-  outputDir: './ipc',
-});
-```
+The CLI takes two arguments:
+- `src/schema` — Directory containing your `.eipc` schema files
+- `ipc` — Output directory for generated code
 
 ## Electron Forge Integration
 
@@ -89,13 +82,13 @@ If using Electron Forge, add generation to your `forge.config.js`:
 ```javascript
 module.exports = {
   hooks: {
-  generateAssets: async () => {
-    const { generateWiring } = await import('@marshallofsound/ipc');
-    await generateWiring({
-    schemaDir: './src/schema',
-    outputDir: './ipc',
-    });
-  },
+    generateAssets: async () => {
+      const { generateWiring } = await import('@marshallofsound/ipc');
+      await generateWiring({
+        schemaFolder: './src/schema',
+        wiringFolder: './src/ipc',
+      });
+    },
   },
 };
 ```
