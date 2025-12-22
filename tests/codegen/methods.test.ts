@@ -230,4 +230,32 @@ describe('Methods codegen', () => {
       expect(wiring.common.internal).toContain('GetValueSync(): string');
     });
   });
+
+  describe('security requirements', () => {
+    it('requires a Validator on every interface', async () => {
+      const schema = `module test.security
+
+[RendererAPI]
+[ContextBridge]
+interface NoValidator {
+    GetValue() -> string
+}`;
+      await expect(generateWiringFromString(schema)).rejects.toThrow('does not have a declared Validator');
+    });
+
+    it('requires RendererAPI tag on interface', async () => {
+      const schema = `module test.security
+
+validator Always = AND(
+    is_main_frame is true
+)
+
+[Validator=Always]
+[ContextBridge]
+interface NoAPIType {
+    GetValue() -> string
+}`;
+      await expect(generateWiringFromString(schema)).rejects.toThrow('does not have a declared API type');
+    });
+  });
 });
