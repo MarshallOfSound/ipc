@@ -386,32 +386,69 @@ function validateDocument(textDocument: TextDocument): Diagnostic[] {
   const text = textDocument.getText();
   const lines = text.split('\n');
 
-  // First pass: collect all defined types
+  // First pass: collect all defined types and check for duplicates
   const definedTypes = new Set<string>(typeKeywords); // Built-in types
   const definedValidators = new Set<string>();
+  const elementDefinitions = new Map<string, { type: string; line: number }>(); // Track where elements are defined
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
 
+    // Helper to check and register element
+    const registerElement = (name: string, type: string, startCol: number) => {
+      if (elementDefinitions.has(name)) {
+        const existing = elementDefinitions.get(name)!;
+        diagnostics.push({
+          severity: DiagnosticSeverity.Error,
+          range: Range.create(i, startCol, i, startCol + name.length),
+          message: `Duplicate definition of "${name}". First defined as ${existing.type} on line ${existing.line + 1}.`,
+          source: 'eipc',
+        });
+      } else {
+        elementDefinitions.set(name, { type, line: i });
+      }
+    };
+
     // Enum
     const enumMatch = line.match(/^\s*enum\s+([a-zA-Z_][a-zA-Z0-9_]*)/);
-    if (enumMatch) definedTypes.add(enumMatch[1]);
+    if (enumMatch) {
+      definedTypes.add(enumMatch[1]);
+      registerElement(enumMatch[1], 'enum', line.indexOf(enumMatch[1]));
+    }
 
     // Structure
     const structMatch = line.match(/^\s*structure\s+([a-zA-Z_][a-zA-Z0-9_]*)/);
-    if (structMatch) definedTypes.add(structMatch[1]);
+    if (structMatch) {
+      definedTypes.add(structMatch[1]);
+      registerElement(structMatch[1], 'structure', line.indexOf(structMatch[1]));
+    }
 
     // Subtype
     const subtypeMatch = line.match(/^\s*subtype\s+([a-zA-Z_][a-zA-Z0-9_]*)/);
-    if (subtypeMatch) definedTypes.add(subtypeMatch[1]);
+    if (subtypeMatch) {
+      definedTypes.add(subtypeMatch[1]);
+      registerElement(subtypeMatch[1], 'subtype', line.indexOf(subtypeMatch[1]));
+    }
 
     // Zod reference
     const zodMatch = line.match(/^\s*zod_reference\s+([a-zA-Z_][a-zA-Z0-9_]*)/);
-    if (zodMatch) definedTypes.add(zodMatch[1]);
+    if (zodMatch) {
+      definedTypes.add(zodMatch[1]);
+      registerElement(zodMatch[1], 'zod_reference', line.indexOf(zodMatch[1]));
+    }
 
     // Validator
     const validatorMatch = line.match(/^\s*validator\s+([a-zA-Z_][a-zA-Z0-9_]*)/);
-    if (validatorMatch) definedValidators.add(validatorMatch[1]);
+    if (validatorMatch) {
+      definedValidators.add(validatorMatch[1]);
+      registerElement(validatorMatch[1], 'validator', line.indexOf(validatorMatch[1]));
+    }
+
+    // Interface
+    const interfaceMatch = line.match(/^\s*interface\s+([a-zA-Z_][a-zA-Z0-9_]*)/);
+    if (interfaceMatch) {
+      registerElement(interfaceMatch[1], 'interface', line.indexOf(interfaceMatch[1]));
+    }
   }
 
   // Check for module declaration
@@ -428,7 +465,14 @@ function validateDocument(textDocument: TextDocument): Diagnostic[] {
   // Second pass: validate references and properties
   let braceCount = 0;
   let parenCount = 0;
-  let currentBlock: { type: string; baseType?: string; startLine: number } | null = null;
+  let currentBlock: {
+    type: string;
+    name?: string;
+    baseType?: string;
+    startLine: number;
+    members?: Map<string, number>; // Track member names -> line number for duplicate detection
+    enumValues?: Map<string, number>; // Track enum values -> line number
+  } | null = null;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -439,27 +483,105 @@ function validateDocument(textDocument: TextDocument): Diagnostic[] {
     // Track block context
     const zodRefStart = line.match(/^\s*zod_reference\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\{/);
     if (zodRefStart) {
-      currentBlock = { type: 'zod_reference', startLine: i };
+      currentBlock = { type: 'zod_reference', name: zodRefStart[1], startLine: i };
     }
 
     const subtypeStart = line.match(/^\s*subtype\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(string|number)\s*\(/);
     if (subtypeStart) {
-      currentBlock = { type: 'subtype', baseType: subtypeStart[2], startLine: i };
+      currentBlock = { type: 'subtype', name: subtypeStart[1], baseType: subtypeStart[2], startLine: i };
     }
 
     const validatorStart = line.match(/^\s*validator\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=/);
     if (validatorStart) {
-      currentBlock = { type: 'validator', startLine: i };
+      currentBlock = { type: 'validator', name: validatorStart[1], startLine: i };
     }
 
     const interfaceStart = line.match(/^\s*interface\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\{/);
     if (interfaceStart) {
-      currentBlock = { type: 'interface', startLine: i };
+      currentBlock = { type: 'interface', name: interfaceStart[1], startLine: i, members: new Map() };
     }
 
     const structureStart = line.match(/^\s*structure\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\{/);
     if (structureStart) {
-      currentBlock = { type: 'structure', startLine: i };
+      currentBlock = { type: 'structure', name: structureStart[1], startLine: i, members: new Map() };
+    }
+
+    const enumStart = line.match(/^\s*enum\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\{/);
+    if (enumStart) {
+      currentBlock = { type: 'enum', name: enumStart[1], startLine: i, members: new Map(), enumValues: new Map() };
+    }
+
+    // Check for duplicate method names in interfaces
+    if (currentBlock?.type === 'interface' && currentBlock.members) {
+      const methodMatch = line.match(/^\s*(?:\[[^\]]*\]\s*)*([a-zA-Z_][a-zA-Z0-9_]*)\s*\(/);
+      if (methodMatch) {
+        const methodName = methodMatch[1];
+        const methodStart = line.indexOf(methodName);
+        if (currentBlock.members.has(methodName)) {
+          diagnostics.push({
+            severity: DiagnosticSeverity.Error,
+            range: Range.create(i, methodStart, i, methodStart + methodName.length),
+            message: `Duplicate method "${methodName}" in interface "${currentBlock.name}". First defined on line ${currentBlock.members.get(methodName)! + 1}.`,
+            source: 'eipc',
+          });
+        } else {
+          currentBlock.members.set(methodName, i);
+        }
+      }
+    }
+
+    // Check for duplicate property names in structures
+    if (currentBlock?.type === 'structure' && currentBlock.members) {
+      const propMatch = line.match(/^\s*([a-zA-Z_][a-zA-Z0-9_]*)\??:\s*/);
+      if (propMatch) {
+        const propName = propMatch[1];
+        const propStart = line.indexOf(propName);
+        if (currentBlock.members.has(propName)) {
+          diagnostics.push({
+            severity: DiagnosticSeverity.Error,
+            range: Range.create(i, propStart, i, propStart + propName.length),
+            message: `Duplicate property "${propName}" in structure "${currentBlock.name}". First defined on line ${currentBlock.members.get(propName)! + 1}.`,
+            source: 'eipc',
+          });
+        } else {
+          currentBlock.members.set(propName, i);
+        }
+      }
+    }
+
+    // Check for duplicate enum option names and values
+    if (currentBlock?.type === 'enum' && currentBlock.members && currentBlock.enumValues) {
+      const enumOptMatch = line.match(/^\s*([a-zA-Z_][a-zA-Z0-9_]*)(?:\s*=\s*"([^"]*)")?/);
+      if (enumOptMatch && !line.match(/^\s*enum\s+/) && !line.trim().startsWith('}')) {
+        const optionName = enumOptMatch[1];
+        const optionValue = enumOptMatch[2] ?? optionName; // Default value is the name itself
+        const optStart = line.indexOf(optionName);
+
+        // Check duplicate name
+        if (currentBlock.members.has(optionName)) {
+          diagnostics.push({
+            severity: DiagnosticSeverity.Error,
+            range: Range.create(i, optStart, i, optStart + optionName.length),
+            message: `Duplicate enum option name "${optionName}" in enum "${currentBlock.name}". First defined on line ${currentBlock.members.get(optionName)! + 1}.`,
+            source: 'eipc',
+          });
+        } else {
+          currentBlock.members.set(optionName, i);
+        }
+
+        // Check duplicate value
+        if (currentBlock.enumValues.has(optionValue)) {
+          const valueStart = enumOptMatch[2] ? line.indexOf(`"${optionValue}"`) : optStart;
+          diagnostics.push({
+            severity: DiagnosticSeverity.Error,
+            range: Range.create(i, valueStart, i, valueStart + optionValue.length + (enumOptMatch[2] ? 2 : 0)),
+            message: `Duplicate enum value "${optionValue}" in enum "${currentBlock.name}". First used on line ${currentBlock.enumValues.get(optionValue)! + 1}.`,
+            source: 'eipc',
+          });
+        } else {
+          currentBlock.enumValues.set(optionValue, i);
+        }
+      }
     }
 
     // Check for closing braces/parens to exit blocks
