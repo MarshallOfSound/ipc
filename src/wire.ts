@@ -5,9 +5,12 @@ import type {
   Enum,
   Interface,
   Structure,
+  StructureBlock,
+  StructureProperty,
   SubType,
   Validator,
   ZodReference,
+  PropertyType,
   isEnum,
   isInterface,
   isStructure,
@@ -60,24 +63,170 @@ let common = `export interface IPCStore<T> {
 }
 `;
 
+const PRIMITIVES = new Set(['string', 'number', 'boolean', 'null', 'void', 'unknown']);
+
+/**
+ * Validate schema semantics before code generation.
+ * Catches errors that would otherwise only appear at runtime.
+ */
+function validateModule(module: Module, allowedTypes: Set<string>): void {
+  const validators = new Set<string>();
+  const errors: string[] = [];
+
+  // Collect all validator names
+  for (const elem of module.elements) {
+    if (elem.$type === 'Validator') {
+      validators.add(elem.name);
+    }
+  }
+
+  // Validate each element
+  for (const elem of module.elements) {
+    switch (elem.$type) {
+      case 'Interface':
+        validateInterface(elem as Interface, validators, allowedTypes, errors);
+        break;
+      case 'Structure':
+        validateStructure(elem as Structure, allowedTypes, errors);
+        break;
+      case 'Enum':
+        validateEnum(elem as Enum, errors);
+        break;
+      case 'SubType':
+        validateSubType(elem as SubType, allowedTypes, errors);
+        break;
+    }
+  }
+
+  if (errors.length > 0) {
+    throw new Error(`Schema validation failed:\n\n${errors.join('\n\n')}`);
+  }
+}
+
+function validateInterface(int: Interface, validators: Set<string>, allowedTypes: Set<string>, errors: string[]): void {
+  // Check validator references exist
+  for (const tag of int.tags) {
+    if (tag.key === 'Validator' && tag.value) {
+      if (!validators.has(tag.value)) {
+        errors.push(`Interface "${int.name}" references validator "${tag.value}" which is not defined.\n` + `Available validators: ${[...validators].join(', ') || '(none)'}`);
+      }
+    }
+  }
+
+  // Check for duplicate method names
+  const methodNames = new Set<string>();
+  for (const method of int.methods) {
+    if (methodNames.has(method.name)) {
+      errors.push(`Interface "${int.name}" has duplicate method "${method.name}".`);
+    }
+    methodNames.add(method.name);
+
+    // Validate method argument types exist
+    for (const arg of method.arguments) {
+      validateTypeReference(arg.type.reference, allowedTypes, `argument "${arg.name}" in method "${int.name}.${method.name}"`, errors);
+    }
+
+    // Validate return type exists
+    if (method.returnType) {
+      validateTypeReference(method.returnType.type.reference, allowedTypes, `return type of "${int.name}.${method.name}"`, errors);
+    }
+  }
+}
+
+function validateStructure(struct: Structure, allowedTypes: Set<string>, errors: string[]): void {
+  validateStructureBlock(struct.block, struct.name, allowedTypes, errors);
+}
+
+function validateStructureBlock(block: StructureBlock, context: string, allowedTypes: Set<string>, errors: string[]): void {
+  const propNames = new Set<string>();
+
+  for (const prop of block.properties) {
+    // Check for duplicate property names
+    if (propNames.has(prop.name)) {
+      errors.push(`Structure "${context}" has duplicate property "${prop.name}".`);
+    }
+    propNames.add(prop.name);
+
+    // Validate property type
+    validatePropertyType(prop.type, `property "${prop.name}" in structure "${context}"`, allowedTypes, errors);
+  }
+}
+
+function validatePropertyType(propType: PropertyType, context: string, allowedTypes: Set<string>, errors: string[]): void {
+  if (propType.$type === 'TypeReference') {
+    validateTypeReference(propType.reference, allowedTypes, context, errors);
+  } else if (propType.$type === 'StructureBlock') {
+    validateStructureBlock(propType, context, allowedTypes, errors);
+  } else if (propType.$type === 'KeyValueBlock') {
+    validatePropertyType(propType.type, context, allowedTypes, errors);
+  }
+}
+
+function validateEnum(en: Enum, errors: string[]): void {
+  const optionNames = new Set<string>();
+  const optionValues = new Set<string>();
+
+  for (const opt of en.options) {
+    // Check for duplicate option names
+    if (optionNames.has(opt.name)) {
+      errors.push(`Enum "${en.name}" has duplicate option name "${opt.name}".`);
+    }
+    optionNames.add(opt.name);
+
+    // Check for duplicate option values
+    const value = opt.value ?? opt.name;
+    if (optionValues.has(value)) {
+      errors.push(`Enum "${en.name}" has duplicate value "${value}".`);
+    }
+    optionValues.add(value);
+  }
+}
+
+function validateSubType(subType: SubType, allowedTypes: Set<string>, errors: string[]): void {
+  // Validate parent type exists (must be a primitive or another subtype)
+  if (!PRIMITIVES.has(subType.parent) && !allowedTypes.has(subType.parent)) {
+    errors.push(`SubType "${subType.name}" extends "${subType.parent}" which is not defined.\n` + `Base types must be primitives (string, number, boolean) or other subtypes.`);
+  }
+}
+
+function validateTypeReference(typeName: string, allowedTypes: Set<string>, context: string, errors: string[]): void {
+  if (!PRIMITIVES.has(typeName) && !allowedTypes.has(typeName)) {
+    errors.push(`Type "${typeName}" used in ${context} is not defined.`);
+  }
+}
+
 export function buildWiring(module: Module): WiringOutput {
   const controller = new Controller();
 
   // First pass - collect types for validation
-  const allowedTypes = new Set(['string', 'number', 'boolean', 'null', 'void']);
+  const allowedTypes = new Set(PRIMITIVES);
 
   // Collect all type names and build subtype map
   const subTypeMap = new Map<string, SubType>();
+  const elementNames = new Map<string, string>(); // name -> element type
+
   for (const elem of module.elements) {
     const typeName = elem.name;
-    if (allowedTypes.has(typeName)) {
-      throw new Error(`Redeclare of built in primitive type "${typeName}"`);
+
+    // Check for duplicate element names
+    if (allowedTypes.has(typeName) && PRIMITIVES.has(typeName)) {
+      throw new Error(`Cannot redeclare built-in primitive type "${typeName}".`);
     }
+
+    if (elementNames.has(typeName)) {
+      throw new Error(`Duplicate definition of "${typeName}".\n\n` + `First defined as: ${elementNames.get(typeName)}\n` + `Also defined as: ${elem.$type}`);
+    }
+
+    elementNames.set(typeName, elem.$type);
     allowedTypes.add(typeName);
+
     if (elem.$type === 'SubType') {
       subTypeMap.set(typeName, elem as SubType);
     }
   }
+
+  // Semantic validation
+  validateModule(module, allowedTypes);
 
   // Validate and wire elements
   for (const elem of module.elements) {
