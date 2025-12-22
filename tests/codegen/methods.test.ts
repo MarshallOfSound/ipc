@@ -240,7 +240,7 @@ describe('Methods codegen', () => {
 interface NoValidator {
     GetValue() -> string
 }`;
-      await expect(generateWiringFromString(schema)).rejects.toThrow('does not have a declared Validator');
+      await expect(generateWiringFromString(schema)).rejects.toThrow('is missing a Validator');
     });
 
     it('requires RendererAPI tag on interface', async () => {
@@ -255,7 +255,7 @@ validator Always = AND(
 interface NoAPIType {
     GetValue() -> string
 }`;
-      await expect(generateWiringFromString(schema)).rejects.toThrow('does not have a declared API type');
+      await expect(generateWiringFromString(schema)).rejects.toThrow('is missing an API type');
     });
   });
 });

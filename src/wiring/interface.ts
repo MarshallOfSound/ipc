@@ -50,7 +50,7 @@ function methodTagInfo(method: Method) {
     } else if (tag.key === 'Store') {
       info.store = true;
     } else {
-      throw new Error(`Unrecognized tag "${tag.key}" on method "${method.name}"`);
+      throw new Error(`Unknown tag "[${tag.key}]" on method "${method.name}".\n\n` + `Valid method tags: [Sync], [Event], [Store], [NotImplemented]`);
     }
   }
 
@@ -91,16 +91,31 @@ function interfaceTagInfo(int: Interface) {
       }
       validators.push(tag.value);
     } else {
-      throw new Error(`Unrecognized tag "${tag.key}" on interface "${int.name}"`);
+      throw new Error(`Unknown tag "[${tag.key}]" on interface "${int.name}".\n\n` + `Valid interface tags: [RendererAPI], [ContextBridge], [Validator=ValidatorName]`);
     }
   }
 
   if (interfaceType === null) {
-    throw new Error(`Interface ${int.name} does not have a declared API type of [RendererAPI]`);
+    throw new Error(
+      `Interface "${int.name}" is missing an API type.\n\n` +
+        `Add [RendererAPI] before the interface declaration:\n\n` +
+        `  [RendererAPI]\n` +
+        `  [Validator=YourValidator]\n` +
+        `  [ContextBridge]\n` +
+        `  interface ${int.name} { ... }`,
+    );
   }
 
   if (validators.length === 0) {
-    throw new Error(`Interface ${int.name} does not have a declared Validator, this is required for security reasons`);
+    throw new Error(
+      `Interface "${int.name}" is missing a Validator.\n\n` +
+        `Every interface requires a validator for security. Add [Validator=...] before the interface:\n\n` +
+        `  [RendererAPI]\n` +
+        `  [Validator=YourValidator]\n` +
+        `  [ContextBridge]\n` +
+        `  interface ${int.name} { ... }\n\n` +
+        `See the Security Best Practices guide for validator patterns.`,
+    );
   }
 
   return {

@@ -206,7 +206,7 @@ validator TestValidator = AND(
 validator TestValidator = AND(
     is_main_frame is "true"
 )`);
-      await expect(generateWiringFromString(schema)).rejects.toThrow('type');
+      await expect(generateWiringFromString(schema)).rejects.toThrow('is a Boolean');
     });
 
     it('rejects type mismatch - string variable with boolean value', async () => {
@@ -214,7 +214,7 @@ validator TestValidator = AND(
 validator TestValidator = AND(
     origin is true
 )`);
-      await expect(generateWiringFromString(schema)).rejects.toThrow('type');
+      await expect(generateWiringFromString(schema)).rejects.toThrow('is a String');
     });
   });
 

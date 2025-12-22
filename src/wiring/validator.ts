@@ -64,6 +64,14 @@ interface ConditionFlags {
   depends_on_url: boolean;
 }
 
+const availableVariables = Object.keys(variables);
+const booleanVariables = Object.entries(variables)
+  .filter(([_, v]) => v.type === 'Boolean')
+  .map(([k]) => k);
+const stringVariables = Object.entries(variables)
+  .filter(([_, v]) => v.type === 'String')
+  .map(([k]) => k);
+
 function buildGrammar(grammar: ValidatorGrammar, process: 'browser' | 'renderer', flags: ConditionFlags): string {
   switch (grammar.$type) {
     case 'ValidatorAnd': {
@@ -84,7 +92,7 @@ function buildCondition(condition: ValidatorStatement, process: 'browser' | 'ren
     case 'ValidatorIs': {
       const { subject, value } = condition;
       if (!Object.prototype.hasOwnProperty.call(variables, subject)) {
-        throw new Error(`Unsupported variable "${subject}" in conditional`);
+        throw new Error(`Unknown variable "${subject}" in validator condition.\n\n` + `Available variables: ${availableVariables.join(', ')}`);
       }
 
       const info = variables[subject];
@@ -96,7 +104,8 @@ function buildCondition(condition: ValidatorStatement, process: 'browser' | 'ren
 
       const targetType = value.$type === 'StringValue' ? 'String' : 'Boolean';
       if (info.type !== targetType) {
-        throw new Error(`Variable "${subject}" of type "${info.type}" can not be compared against a literal of type "${targetType}"`);
+        const validVars = targetType === 'Boolean' ? booleanVariables : stringVariables;
+        throw new Error(`Variable "${subject}" is a ${info.type}, but you're comparing it to a ${targetType}.\n\n` + `${targetType} variables: ${validVars.join(', ')}`);
       }
 
       if (!info.depends_on_url && info[process] === null) {
@@ -117,7 +126,7 @@ function buildCondition(condition: ValidatorStatement, process: 'browser' | 'ren
     case 'ValidatorStartsWith': {
       const { subject, value } = condition;
       if (!Object.prototype.hasOwnProperty.call(variables, subject)) {
-        throw new Error(`Unsupported variable "${subject}" in conditional`);
+        throw new Error(`Unknown variable "${subject}" in validator condition.\n\n` + `Available variables: ${availableVariables.join(', ')}`);
       }
 
       const info = variables[subject];
@@ -128,7 +137,9 @@ function buildCondition(condition: ValidatorStatement, process: 'browser' | 'ren
       }
 
       if (info.type !== 'String') {
-        throw new Error(`Variable "${subject}" of type "${info.type}" cannot use startsWith (requires String)`);
+        throw new Error(
+          `Cannot use "startsWith" with "${subject}" - it's a ${info.type}, not a String.\n\n` + `String variables that support startsWith: ${stringVariables.join(', ')}`,
+        );
       }
 
       if (!info.depends_on_url && info[process] === null) {
