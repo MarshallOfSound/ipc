@@ -1,7 +1,7 @@
 ---
 title: Portable Types
 description: Share IPC type definitions with external projects using dts-bundle-generator.
-order: 1
+order: 2
 ---
 
 When building an Electron app that loads external web content (like a webapp from a different repository), you may want to provide type-safe IPC access to that external code. This guide shows how to generate portable type definitions that can be copied to other projects.
