@@ -122,6 +122,7 @@ Both the CLI and programmatic API create the following directory structure:
 
 ```
 src/ipc/
+├── .eipc-generated   # Marker file (do not delete)
 ├── browser/          # Main process implementations
 │   └── {module}.ts
 ├── preload/          # Preload script code
@@ -137,6 +138,18 @@ src/ipc/
 └── _internal/        # Internal generated code
     └── ...
 ```
+
+### Safety Check
+
+EIPC writes a `.eipc-generated` marker file to the output directory. Before regenerating, it checks for this marker to prevent accidentally overwriting non-EIPC directories.
+
+If you see this error:
+
+```
+Refusing to overwrite "src/ipc" - it exists but was not created by EIPC.
+```
+
+Either delete the directory manually, or choose a different output path.
 
 ## Error Handling
 
