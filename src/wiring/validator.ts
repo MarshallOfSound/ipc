@@ -21,7 +21,7 @@ const variables: Record<
     depends_on_url: false,
     renderer_depends_on_webframe: true,
     browser: 'event.senderFrame?.parent === null',
-    renderer: 'webFrame.top?.routingId === webFrame.routingId',
+    renderer: '("frameToken" in webFrame && webFrame.top && "frameToken" in webFrame.top) ? webFrame.top.frameToken === webFrame.frameToken : webFrame.top?.routingId === webFrame.routingId',
     type: 'Boolean',
   },
   is_packaged: {
