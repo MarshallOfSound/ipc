@@ -75,6 +75,12 @@ structure ComputerStuff {
     }
 }
 
+// Demonstrates using "type" as a property name (previously a reserved word bug)
+structure Message {
+    type: string
+    payload: string
+}
+
 [RendererAPI]
 [Validator=OnlyElectronJSDotOrg]
 [ContextBridge]

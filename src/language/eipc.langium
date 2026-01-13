@@ -6,7 +6,7 @@ entry Module:
 
 // NamePart allows IDs and keywords that might be used as names
 NamePart returns string:
-    ID | 'string' | 'number' | 'boolean' | 'validator' | 'enum' | 'structure' | 'subtype' | 'interface' | 'module' | 'startsWith';
+    ID | 'string' | 'number' | 'boolean' | 'validator' | 'enum' | 'structure' | 'subtype' | 'interface' | 'module' | 'startsWith' | 'type';
 
 QualifiedName returns string:
     NamePart ('.' NamePart)*;
@@ -79,7 +79,7 @@ StructureBlock:
     '{' (properties+=StructureProperty)+ '}';
 
 StructureProperty:
-    name=ID optional?='?'? ':' type=PropertyType nullable?='?'?;
+    name=NamePart optional?='?'? ':' type=PropertyType nullable?='?'?;
 
 PropertyType:
     TypeReference | StructureBlock | KeyValueBlock;

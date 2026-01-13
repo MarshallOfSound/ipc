@@ -207,6 +207,20 @@ structure User {
     });
   });
 
+  describe('reserved word property names', () => {
+    it('allows "type" as a property name', async () => {
+      const schema = withStructure(`
+structure Message {
+    type: string
+    payload: string
+}`);
+      const wiring = await generateWiringFromString(schema);
+      expect(wiring.common.internal).toContain('export interface Message');
+      expect(wiring.common.internal).toContain('type: string');
+      expect(wiring.common.internal).toContain('payload: string');
+    });
+  });
+
   describe('exports', () => {
     it('exports structure interface', async () => {
       const schema = withStructure(`
