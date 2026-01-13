@@ -81,6 +81,12 @@ structure Message {
     payload: string
 }
 
+// Demonstrates store with structure return type (tests import generation fix)
+structure ConnectionState {
+    connected: boolean
+    latency?: number
+}
+
 // Demonstrates using "type" as a method parameter name
 structure MessageResult {
     success: boolean
@@ -101,6 +107,9 @@ interface ComputerInfo {
     shutdown(foo: string)
     [Store]
     blah() -> string
+    // Demonstrates store with structure return type (tests import generation fix)
+    [Store]
+    connection() -> ConnectionState
     // Demonstrates using "type" as a method parameter name (previously a reserved word bug)
     SendMessage(type: string, payload: string) -> MessageResult
 }

@@ -35,6 +35,9 @@ app.whenReady().then(() => {
     getInitialBlahState() {
       return 'initial-blah-state';
     },
+    getInitialConnectionState() {
+      return { connected: true, latency: 50 };
+    },
     async SendMessage(type, payload) {
       console.log(`Received message of type: ${type}, payload: ${payload}`);
       return { success: true };

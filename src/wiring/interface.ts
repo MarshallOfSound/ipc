@@ -444,8 +444,20 @@ export function wireInterface(int: Interface, module: Module, allowedTypes: Set<
     // Generate React hooks for stores
     const storeMethods = int.methods.filter((m) => methodTagInfo(m).store);
     if (storeMethods.length > 0 && intInfo.autoContextBridge) {
-      // Import the type from common and access the bridged implementation from globalThis
-      controller.addRendererHooksCode(`import type { I${int.name}Renderer } from '../../common/${module.name}.js';`);
+      // Collect non-primitive return types from store methods for import
+      const storeReturnTypes = new Set<string>();
+      for (const method of storeMethods) {
+        if (method.returnType) {
+          const baseType = method.returnType.type.reference;
+          if (!basePrimitives.includes(baseType)) {
+            storeReturnTypes.add(baseType);
+          }
+        }
+      }
+
+      // Import the interface type and any store return types from common
+      const importTypes = [`I${int.name}Renderer`, ...storeReturnTypes].join(', ');
+      controller.addRendererHooksCode(`import type { ${importTypes} } from '../../common/${module.name}.js';`);
       controller.addRendererHooksCode(`const ${int.name} = (globalThis as any)['${module.name}']?.['${int.name}'] as Partial<I${int.name}Renderer> | undefined;`);
 
       for (const method of storeMethods) {
