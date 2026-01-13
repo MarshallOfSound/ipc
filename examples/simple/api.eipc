@@ -81,6 +81,11 @@ structure Message {
     payload: string
 }
 
+// Demonstrates using "type" as a method parameter name
+structure MessageResult {
+    success: boolean
+}
+
 [RendererAPI]
 [Validator=OnlyElectronJSDotOrg]
 [ContextBridge]
@@ -96,6 +101,8 @@ interface ComputerInfo {
     shutdown(foo: string)
     [Store]
     blah() -> string
+    // Demonstrates using "type" as a method parameter name (previously a reserved word bug)
+    SendMessage(type: string, payload: string) -> MessageResult
 }
 
 [RendererAPI]

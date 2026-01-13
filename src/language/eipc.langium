@@ -127,7 +127,7 @@ Method:
     name=ID '(' (arguments+=Argument (',' arguments+=Argument)*)? ')' returnType=ReturnType?;
 
 Argument:
-    name=ID optional?='?'? ':' type=TypeReference nullable?='?'?;
+    name=NamePart optional?='?'? ':' type=TypeReference nullable?='?'?;
 
 ReturnType:
     '->' type=TypeReference nullable?='?'?;

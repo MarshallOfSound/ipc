@@ -231,6 +231,15 @@ describe('Methods codegen', () => {
     });
   });
 
+  describe('reserved word parameter names', () => {
+    it('allows "type" as a parameter name', async () => {
+      const schema = withMethods('    SendMessage(type: string, payload: string) -> string');
+      const wiring = await generateWiringFromString(schema);
+      expect(wiring.browser.internal).toContain('arg_type');
+      expect(wiring.browser.internal).toContain("typeof arg_type === 'string'");
+    });
+  });
+
   describe('security requirements', () => {
     it('requires a Validator on every interface', async () => {
       const schema = `module test.security
