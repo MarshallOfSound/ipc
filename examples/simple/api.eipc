@@ -105,6 +105,8 @@ interface ComputerInfo {
     SendMessage(type: string, payload: string) -> MessageResult
 }
 
+// Demonstrates that interfaces without stores are still exported from the renderer
+// (Previously a bug where renderer exports were only generated for interfaces with stores)
 [RendererAPI]
 [Validator=OnlyCustomProtocol]
 [ContextBridge]

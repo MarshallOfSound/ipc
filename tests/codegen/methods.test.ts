@@ -229,6 +229,17 @@ describe('Methods codegen', () => {
       expect(wiring.common.internal).toContain('ITestInterfaceRenderer');
       expect(wiring.common.internal).toContain('GetValueSync(): string');
     });
+
+    it('exports interface from renderer even without stores', async () => {
+      // Regression test: renderer export should be generated for all interfaces,
+      // not just those with store methods
+      const schema = withMethods('    GetValue() -> string');
+      const wiring = await generateWiringFromString(schema);
+      // Should export the interface from renderer
+      expect(wiring.renderer.internal).toContain('import type { ITestInterfaceRenderer }');
+      expect(wiring.renderer.internal).toContain('export const TestInterface');
+      expect(wiring.renderer.internal).toContain("(globalThis as any)['test.methods']?.['TestInterface']");
+    });
   });
 
   describe('reserved word parameter names', () => {
