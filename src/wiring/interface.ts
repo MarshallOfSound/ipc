@@ -436,6 +436,9 @@ export function wireInterface(int: Interface, module: Module, allowedTypes: Set<
     controller.addCommonExport(`I${int.name}Impl`);
     controller.addCommonExport(`I${int.name}Renderer`);
 
+    controller.addRendererCode(`import type { I${int.name}Renderer } from '../../common/${module.name}.js';`);
+    controller.addRendererCode(`export const ${int.name} = (globalThis as any)['${module.name}']?.['${int.name}'] as Partial<I${int.name}Renderer> | undefined;`);
+
     // Generate React hooks for stores
     const storeMethods = int.methods.filter((m) => methodTagInfo(m).store);
     if (storeMethods.length > 0 && intInfo.autoContextBridge) {
