@@ -63,7 +63,7 @@
         },
         {
           "name": "keyword.control.condition.eipc",
-          "match": "\\b(is|startsWith|dynamic_global)\\b"
+          "match": "\\b(is|startsWith|endsWith|dynamic_global)\\b"
         },
         {
           "name": "variable.other.condition.eipc",

@@ -28,6 +28,12 @@ validator AdminPagesOnly = AND(
     href startsWith "https://myapp.com/admin"
 )
 
+// Validator using endsWith for suffix matching
+validator InternalDomainsOnly = AND(
+    is_main_frame is true
+    hostname endsWith ".example.com"
+)
+
 validator OnlyWithDynamicGlobal = AND(
     dynamic_global(fooBarRabbitCheese)
     is_main_frame is true

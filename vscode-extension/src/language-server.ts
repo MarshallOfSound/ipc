@@ -64,6 +64,7 @@ const keywords = [
   'OR',
   'is',
   'startsWith',
+  'endsWith',
   'dynamic_global',
   'true',
   'false',
@@ -173,6 +174,10 @@ const operatorDocs: Record<string, { description: string; example: string }> = {
   startsWith: {
     description: 'Checks if a string condition starts with a prefix.',
     example: 'origin startsWith "https://"',
+  },
+  endsWith: {
+    description: 'Checks if a string condition ends with a suffix.',
+    example: 'hostname endsWith ".example.com"',
   },
 };
 
@@ -641,7 +646,7 @@ function validateDocument(textDocument: TextDocument): Diagnostic[] {
     // Validate validator conditions
     if (currentBlock?.type === 'validator') {
       // Check for condition usage (word followed by 'is' or 'startsWith')
-      const conditionMatches = line.matchAll(/\b([a-zA-Z_][a-zA-Z0-9_]*)\s+(is|startsWith)\b/g);
+      const conditionMatches = line.matchAll(/\b([a-zA-Z_][a-zA-Z0-9_]*)\s+(is|startsWith|endsWith)\b/g);
       for (const match of conditionMatches) {
         const conditionName = match[1];
         // Skip AND, OR, true, false

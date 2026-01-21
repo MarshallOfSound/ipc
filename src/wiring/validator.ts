@@ -7,6 +7,7 @@ import type {
   ValidatorOr,
   ValidatorIs,
   ValidatorStartsWith,
+  ValidatorEndsWith,
   ValidatorDynamicGlobal,
 } from '../language/generated/ast.js';
 import { eventValidator } from './_constants.js';
@@ -124,7 +125,9 @@ function buildCondition(condition: ValidatorStatement, process: 'browser' | 'ren
       const targetValue = value.$type === 'StringValue' ? JSON.stringify(value.value.replace(/^"|"$/g, '')) : value.value === 'true';
       return `((${expression}) === ${targetValue})`;
     }
-    case 'ValidatorStartsWith': {
+    case 'ValidatorStartsWith':
+    case 'ValidatorEndsWith': {
+      const method = condition.$type === 'ValidatorStartsWith' ? 'startsWith' : 'endsWith';
       const { subject, value } = condition;
       if (!Object.prototype.hasOwnProperty.call(variables, subject)) {
         throw new Error(`Unknown variable "${subject}" in validator condition.\n\n` + `Available variables: ${availableVariables.join(', ')}`);
@@ -139,7 +142,7 @@ function buildCondition(condition: ValidatorStatement, process: 'browser' | 'ren
 
       if (info.type !== 'String') {
         throw new Error(
-          `Cannot use "startsWith" with "${subject}" - it's a ${info.type}, not a String.\n\n` + `String variables that support startsWith: ${stringVariables.join(', ')}`,
+          `Cannot use "${method}" with "${subject}" - it's a ${info.type}, not a String.\n\n` + `String variables that support ${method}: ${stringVariables.join(', ')}`,
         );
       }
 
@@ -155,7 +158,7 @@ function buildCondition(condition: ValidatorStatement, process: 'browser' | 'ren
       }
 
       const cleanValue = value.replace(/^"|"$/g, '');
-      return `((${expression}).startsWith(${JSON.stringify(cleanValue)}))`;
+      return `((${expression}).${method}(${JSON.stringify(cleanValue)}))`;
     }
     case 'ValidatorDynamicGlobal': {
       const { param } = condition;
