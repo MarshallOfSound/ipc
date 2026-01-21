@@ -6,7 +6,7 @@ entry Module:
 
 // NamePart allows IDs and keywords that might be used as names
 NamePart returns string:
-    ID | 'string' | 'number' | 'boolean' | 'validator' | 'enum' | 'structure' | 'subtype' | 'interface' | 'module' | 'startsWith' | 'type';
+    ID | 'string' | 'number' | 'boolean' | 'validator' | 'enum' | 'structure' | 'subtype' | 'interface' | 'module' | 'startsWith' | 'endsWith' | 'type';
 
 QualifiedName returns string:
     NamePart ('.' NamePart)*;
@@ -42,13 +42,16 @@ ValidatorOr:
     'OR(' (conditions+=ValidatorStatement)+ ')';
 
 ValidatorStatement:
-    ValidatorIs | ValidatorStartsWith | ValidatorDynamicGlobal | ValidatorGrammar;
+    ValidatorIs | ValidatorStartsWith | ValidatorEndsWith | ValidatorDynamicGlobal | ValidatorGrammar;
 
 ValidatorIs:
     subject=ID 'is' value=StringOrBoolean;
 
 ValidatorStartsWith:
     subject=ID 'startsWith' value=STRING;
+
+ValidatorEndsWith:
+    subject=ID 'endsWith' value=STRING;
 
 ValidatorDynamicGlobal:
     'dynamic_global(' param=ID ')';

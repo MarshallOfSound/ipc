@@ -269,4 +269,57 @@ validator TestValidator = AND(
       await expect(generateWiringFromString(schema)).rejects.toThrow('String');
     });
   });
+
+  describe('endsWith', () => {
+    it('generates endsWith for hostname', async () => {
+      const schema = withValidator(`
+validator TestValidator = AND(
+    hostname endsWith ".example.com"
+)`);
+      const wiring = await generateWiringFromString(schema);
+      expect(wiring.browser.internal).toContain('url.hostname');
+      expect(wiring.browser.internal).toContain('.endsWith(');
+      expect(wiring.browser.internal).toContain('".example.com"');
+    });
+
+    it('generates endsWith for origin', async () => {
+      const schema = withValidator(`
+validator TestValidator = AND(
+    origin endsWith ".example.com"
+)`);
+      const wiring = await generateWiringFromString(schema);
+      expect(wiring.browser.internal).toContain('.endsWith(');
+      expect(wiring.browser.internal).toContain('".example.com"');
+    });
+
+    it('generates endsWith for href', async () => {
+      const schema = withValidator(`
+validator TestValidator = AND(
+    href endsWith "/dashboard"
+)`);
+      const wiring = await generateWiringFromString(schema);
+      expect(wiring.browser.internal).toContain('url.href');
+      expect(wiring.browser.internal).toContain('.endsWith(');
+      expect(wiring.browser.internal).toContain('"/dashboard"');
+    });
+
+    it('combines endsWith with other conditions', async () => {
+      const schema = withValidator(`
+validator TestValidator = AND(
+    is_main_frame is true
+    hostname endsWith ".example.com"
+)`);
+      const wiring = await generateWiringFromString(schema);
+      expect(wiring.browser.internal).toContain('event.senderFrame?.parent === null');
+      expect(wiring.browser.internal).toContain('.endsWith(');
+    });
+
+    it('rejects endsWith on boolean variables', async () => {
+      const schema = withValidator(`
+validator TestValidator = AND(
+    is_main_frame endsWith "true"
+)`);
+      await expect(generateWiringFromString(schema)).rejects.toThrow('String');
+    });
+  });
 });
