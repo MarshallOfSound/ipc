@@ -278,4 +278,81 @@ interface NoAPIType {
       await expect(generateWiringFromString(schema)).rejects.toThrow('is missing an API type');
     });
   });
+
+  describe('LegacyAlias', () => {
+    it('generates renderer export with fallback lookup', async () => {
+      const schema = `module test.legacy
+
+validator Always = AND(
+    is_main_frame is true
+)
+
+[RendererAPI]
+[Validator=Always]
+[ContextBridge]
+[LegacyAlias=OldName]
+interface NewName {
+    GetValue() -> string
+}`;
+      const wiring = await generateWiringFromString(schema);
+      expect(wiring.renderer.internal).toContain(
+        `export const NewName = ((globalThis as any)['test.legacy']?.['NewName'] || (globalThis as any)['test.legacy']?.['OldName']) as Partial<INewNameRenderer> | undefined;`,
+      );
+    });
+
+    it('does not generate a separate deprecated re-export', async () => {
+      const schema = `module test.legacy
+
+validator Always = AND(
+    is_main_frame is true
+)
+
+[RendererAPI]
+[Validator=Always]
+[ContextBridge]
+[LegacyAlias=OldName]
+interface NewName {
+    GetValue() -> string
+}`;
+      const wiring = await generateWiringFromString(schema);
+      expect(wiring.renderer.internal).not.toContain('export const OldName');
+    });
+
+    it('supports multiple legacy aliases', async () => {
+      const schema = `module test.legacy
+
+validator Always = AND(
+    is_main_frame is true
+)
+
+[RendererAPI]
+[Validator=Always]
+[ContextBridge]
+[LegacyAlias=OldName]
+[LegacyAlias=AncientName]
+interface NewName {
+    GetValue() -> string
+}`;
+      const wiring = await generateWiringFromString(schema);
+      expect(wiring.renderer.internal).toContain("(globalThis as any)['test.legacy']?.['OldName']");
+      expect(wiring.renderer.internal).toContain("(globalThis as any)['test.legacy']?.['AncientName']");
+    });
+
+    it('throws when LegacyAlias has no value', async () => {
+      const schema = `module test.legacy
+
+validator Always = AND(
+    is_main_frame is true
+)
+
+[RendererAPI]
+[Validator=Always]
+[ContextBridge]
+[LegacyAlias]
+interface NewName {
+    GetValue() -> string
+}`;
+      await expect(generateWiringFromString(schema)).rejects.toThrow('Value not provided with "LegacyAlias" tag');
+    });
+  });
 });

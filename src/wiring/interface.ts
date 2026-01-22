@@ -78,6 +78,7 @@ function interfaceTagInfo(int: Interface) {
   let interfaceType: InterfaceType | null = null;
   let autoContextBridge = false;
   const validators: string[] = [];
+  const legacyAliases: string[] = [];
 
   for (const tag of int.tags) {
     if (tag.key === 'RendererAPI') {
@@ -90,8 +91,15 @@ function interfaceTagInfo(int: Interface) {
         throw new Error(`Value not provided with "Validator" tag on interface "${int.name}"`);
       }
       validators.push(tag.value);
+    } else if (tag.key === 'LegacyAlias') {
+      if (!tag.value) {
+        throw new Error(`Value not provided with "LegacyAlias" tag on interface "${int.name}"`);
+      }
+      legacyAliases.push(tag.value);
     } else {
-      throw new Error(`Unknown tag "[${tag.key}]" on interface "${int.name}".\n\n` + `Valid interface tags: [RendererAPI], [ContextBridge], [Validator=ValidatorName]`);
+      throw new Error(
+        `Unknown tag "[${tag.key}]" on interface "${int.name}".\n\n` + `Valid interface tags: [RendererAPI], [ContextBridge], [Validator=ValidatorName], [LegacyAlias=OldName]`,
+      );
     }
   }
 
@@ -122,6 +130,7 @@ function interfaceTagInfo(int: Interface) {
     interfaceType,
     autoContextBridge,
     validators,
+    legacyAliases,
   };
 }
 
@@ -437,7 +446,12 @@ export function wireInterface(int: Interface, module: Module, allowedTypes: Set<
     controller.addCommonExport(`I${int.name}Renderer`);
 
     controller.addRendererCode(`import type { I${int.name}Renderer } from '../../common/${module.name}.js';`);
-    controller.addRendererCode(`export const ${int.name} = (globalThis as any)['${module.name}']?.['${int.name}'] as Partial<I${int.name}Renderer> | undefined;`);
+    if (intInfo.legacyAliases.length > 0) {
+      const lookups = [int.name, ...intInfo.legacyAliases].map((n) => `(globalThis as any)['${module.name}']?.['${n}']`).join(' || ');
+      controller.addRendererCode(`export const ${int.name} = (${lookups}) as Partial<I${int.name}Renderer> | undefined;`);
+    } else {
+      controller.addRendererCode(`export const ${int.name} = (globalThis as any)['${module.name}']?.['${int.name}'] as Partial<I${int.name}Renderer> | undefined;`);
+    }
     controller.addRendererExport(int.name);
     controller.addRendererExport(`I${int.name}Renderer`);
 
