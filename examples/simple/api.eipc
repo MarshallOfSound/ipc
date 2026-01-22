@@ -101,6 +101,7 @@ structure MessageResult {
 [RendererAPI]
 [Validator=OnlyElectronJSDotOrg]
 [ContextBridge]
+[LegacyAlias=OldComputerInfo]
 interface ComputerInfo {
     GetName(foo: ComputerPlatform) -> string?
     [Sync]
