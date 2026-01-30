@@ -120,5 +120,18 @@ enum MyEnum {
       const wiring = await generateWiringFromString(schema);
       expect(wiring.common.internal).toContain('export enum MyEnum');
     });
+
+    it('uses export * for common external to avoid Rollup type-only export issues', async () => {
+      const schema = withEnum(`
+enum Status {
+    Active = "active"
+    Inactive = "inactive"
+}`);
+      const wiring = await generateWiringFromString(schema);
+      // common.external should use export * instead of export { Status }
+      // to avoid Rollup issues with type-only exports
+      expect(wiring.common.external).toContain("export * from '../_internal/common/test.enum.js'");
+      expect(wiring.common.external).not.toContain('export { Status }');
+    });
   });
 });
