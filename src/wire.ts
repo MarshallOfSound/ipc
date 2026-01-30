@@ -263,7 +263,12 @@ export function buildWiring(module: Module): WiringOutput {
   const externalFile = (type: string, exports: string[]) => {
     return [
       ...(type !== 'common' ? [`export * from '../common/${module.name}.js';`] : []),
-      ...(exports.length > 0 ? [`export { ${exports.join(', ')} } from '../_internal/${type}/${module.name}.js';`] : []),
+      // For common, use export * to avoid Rollup issues with type-only exports
+      ...(type === 'common'
+        ? [`export * from '../_internal/${type}/${module.name}.js';`]
+        : exports.length > 0
+          ? [`export { ${exports.join(', ')} } from '../_internal/${type}/${module.name}.js';`]
+          : []),
     ].join('\n');
   };
 
