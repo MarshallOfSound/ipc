@@ -191,7 +191,16 @@ export function wireValidator(validatorDef: Validator, controller: Controller): 
   const browserEventValidator = [
     `function ${eventValidator(validatorDef.name)}(event: Electron.IpcMainEvent | Electron.IpcMainInvokeEvent) {`,
     ...(dependencies.depends_on_url
-      ? ['  if (!event.senderFrame) return false;', '  if (!event.senderFrame.url) return false;', '  let url: URL;', '  try {', '    url = new URL(event.senderFrame.url);', '  } catch {', '    return false;', '  }']
+      ? [
+          '  if (!event.senderFrame) return false;',
+          '  if (!event.senderFrame.url) return false;',
+          '  let url: URL;',
+          '  try {',
+          '    url = new URL(event.senderFrame.url);',
+          '  } catch {',
+          '    return false;',
+          '  }',
+        ]
       : []),
     `  if (${browserCondition}) return true;`,
     '  return false;',
