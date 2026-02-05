@@ -192,6 +192,19 @@ validator TestValidator = {
     });
   });
 
+  describe('empty senderFrame.url guard', () => {
+    it('generates early return for empty senderFrame.url when validator depends on URL', async () => {
+      const schema = withValidator(`
+validator TestValidator = AND(
+    origin is "https://example.com"
+)`);
+      const wiring = await generateWiringFromString(schema);
+      // Should check for empty url before trying new URL() to handle
+      // preload scripts where senderFrame.url is '' before navigation
+      expect(wiring.browser.internal).toContain('if (!event.senderFrame.url) return false;');
+    });
+  });
+
   describe('error cases', () => {
     it('rejects unsupported variable', async () => {
       const schema = withValidator(`
