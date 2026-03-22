@@ -41,6 +41,14 @@ validator MyValidator = AND(
 | `hostname startsWith "api."` | Check if hostname starts with prefix |
 | `href startsWith "https://myapp.com/admin"` | Check if full URL starts with prefix |
 
+### Suffix Match (`endsWith`)
+
+| Condition | Description |
+|-----------|-------------|
+| `origin endsWith ".example.com"` | Check if origin ends with suffix |
+| `hostname endsWith ".example.com"` | Check if hostname ends with suffix |
+| `href endsWith "/dashboard"` | Check if full URL ends with suffix |
+
 ### Dynamic Checks
 
 | Condition | Description |
