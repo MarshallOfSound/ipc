@@ -8,8 +8,10 @@ export class Controller {
   private preloadBridgeKeys: Array<{ module: string; key: string; type: string }> = [];
   private rendererCode: string[] = [];
   private rendererExports: string[] = [];
+  private rendererTypeExports: string[] = [];
   private rendererHooksCode: string[] = [];
   private rendererHooksExports: string[] = [];
+  private rendererHooksTypeExports: string[] = [];
   private commonCode: string[] = [];
   private commonExports: string[] = [];
   private commonRuntimeCode: string[] = [];
@@ -51,12 +53,20 @@ export class Controller {
     this.rendererExports.push(name);
   }
 
+  addRendererTypeExport(name: string): void {
+    this.rendererTypeExports.push(name);
+  }
+
   addRendererHooksCode(code: string): void {
     this.rendererHooksCode.push(code);
   }
 
   addRendererHooksExport(name: string): void {
     this.rendererHooksExports.push(name);
+  }
+
+  addRendererHooksTypeExport(name: string): void {
+    this.rendererHooksTypeExports.push(name);
   }
 
   addCommonCode(code: string): void {
@@ -109,12 +119,20 @@ export class Controller {
     return this.rendererExports;
   }
 
+  getRendererTypeExports(): string[] {
+    return this.rendererTypeExports;
+  }
+
   getRendererHooksCode(): string[] {
     return this.rendererHooksCode;
   }
 
   getRendererHooksExports(): string[] {
     return this.rendererHooksExports;
+  }
+
+  getRendererHooksTypeExports(): string[] {
+    return this.rendererHooksTypeExports;
   }
 
   getCommonCode(): string[] {
