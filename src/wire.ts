@@ -271,9 +271,7 @@ export function buildWiring(module: Module): WiringOutput {
         : exports.length > 0
           ? [`export { ${exports.join(', ')} } from '../_internal/${type}/${module.name}.js';`]
           : []),
-      ...(typeExports.length > 0
-        ? [`export type { ${typeExports.join(', ')} } from '../_internal/${type}/${module.name}.js';`]
-        : []),
+      ...(typeExports.length > 0 ? [`export type { ${typeExports.join(', ')} } from '../_internal/${type}/${module.name}.js';`] : []),
     ].join('\n');
   };
 
