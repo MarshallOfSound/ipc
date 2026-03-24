@@ -257,10 +257,12 @@ export function buildWiring(module: Module): WiringOutput {
   const preloadExports = controller.getPreloadExports();
   const rendererExports = controller.getRendererExports();
   const rendererHooksExports = controller.getRendererHooksExports();
+  const rendererTypeExports = controller.getRendererTypeExports();
+  const rendererHooksTypeExports = controller.getRendererHooksTypeExports();
   const commonExports = controller.getCommonExports();
   const commonRuntimeExports = controller.getCommonRuntimeExports();
 
-  const externalFile = (type: string, exports: string[]) => {
+  const externalFile = (type: string, exports: string[], typeExports: string[] = []) => {
     return [
       ...(type !== 'common' ? [`export * from '../common/${module.name}.js';`] : []),
       // For common, use export * to avoid Rollup issues with type-only exports
@@ -269,6 +271,7 @@ export function buildWiring(module: Module): WiringOutput {
         : exports.length > 0
           ? [`export { ${exports.join(', ')} } from '../_internal/${type}/${module.name}.js';`]
           : []),
+      ...(typeExports.length > 0 ? [`export type { ${typeExports.join(', ')} } from '../_internal/${type}/${module.name}.js';`] : []),
     ].join('\n');
   };
 
@@ -330,11 +333,14 @@ export function buildWiring(module: Module): WiringOutput {
     },
     renderer: {
       internal: renderer,
-      external: externalFile('renderer', rendererExports),
+      external: externalFile('renderer', rendererExports, rendererTypeExports),
     },
     rendererHooks: {
       internal: rendererHooks,
-      external: rendererHooksExports.length > 0 ? `export { ${rendererHooksExports.join(', ')} } from '../_internal/renderer-hooks/${module.name}.js';` : '',
+      external: [
+        ...(rendererHooksExports.length > 0 ? [`export { ${rendererHooksExports.join(', ')} } from '../_internal/renderer-hooks/${module.name}.js';`] : []),
+        ...(rendererHooksTypeExports.length > 0 ? [`export type { ${rendererHooksTypeExports.join(', ')} } from '../_internal/renderer-hooks/${module.name}.js';`] : []),
+      ].join('\n'),
     },
     common: {
       internal: commonCode,

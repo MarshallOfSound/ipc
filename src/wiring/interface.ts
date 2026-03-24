@@ -453,7 +453,7 @@ export function wireInterface(int: Interface, module: Module, allowedTypes: Set<
       controller.addRendererCode(`export const ${int.name} = (globalThis as any)['${module.name}']?.['${int.name}'] as Partial<I${int.name}Renderer> | undefined;`);
     }
     controller.addRendererExport(int.name);
-    controller.addRendererExport(`I${int.name}Renderer`);
+    controller.addRendererTypeExport(`I${int.name}Renderer`);
 
     // Generate React hooks for stores
     const storeMethods = int.methods.filter((m) => methodTagInfo(m).store);
@@ -530,7 +530,7 @@ export function wireInterface(int: Interface, module: Module, allowedTypes: Set<
 
         controller.addRendererHooksCode(hookCode.join('\n'));
         controller.addRendererHooksExport(hookName);
-        controller.addRendererHooksExport(`${upFirst(method.name)}StoreState`);
+        controller.addRendererHooksTypeExport(`${upFirst(method.name)}StoreState`);
       }
     }
   }
