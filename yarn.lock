@@ -1213,7 +1213,7 @@ __metadata:
     "@types/node": "npm:^22.0.0"
     "@types/react": "npm:^19.2.7"
     "@types/react-dom": "npm:^19"
-    electron: "npm:^36.4.0"
+    electron: "npm:^39.8.5"
     esbuild: "npm:^0.27.2"
     husky: "npm:^9.1.7"
     langium: "npm:^4.2.2"
@@ -3658,16 +3658,16 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"electron@npm:^36.4.0":
-  version: 36.4.0
-  resolution: "electron@npm:36.4.0"
+"electron@npm:^39.8.5":
+  version: 39.8.7
+  resolution: "electron@npm:39.8.7"
   dependencies:
     "@electron/get": "npm:^2.0.0"
     "@types/node": "npm:^22.7.7"
     extract-zip: "npm:^2.0.1"
   bin:
     electron: cli.js
-  checksum: 10c0/c82fab3fbda01e5be561509f362bbbce1179f50e6f2fe3b5262cbb622887ae7c0f8d0ac728190207d3fb9480f3144ce5ddfbd1a6145627c3d267cd24811e9fdf
+  checksum: 10c0/cec8fd0842f565fa5c6acf909e141bab269df1e78ff5eb2fcaf256e7f073060872f6a18dc2aced4888606445d15b79f9ef971c011e5c06b6bd7a0247ae104cdb
   languageName: node
   linkType: hard
 
