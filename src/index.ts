@@ -23,8 +23,24 @@ interface WiringOptions {
 const IPC_SCHEMA_EXTENSION = '.eipc';
 const MARKER_FILE = '.eipc-generated';
 
+/**
+ * Recursively collect schema files from a folder, returning paths relative to
+ * `schemaFolder` and sorted lexicographically so that generated output is
+ * deterministic across filesystems (raw readdir order is not guaranteed).
+ */
+async function collectSchemaFiles(schemaFolder: string): Promise<string[]> {
+  const entries = await fs.promises.readdir(schemaFolder, { recursive: true, withFileTypes: true });
+  const files: string[] = [];
+  for (const entry of entries) {
+    if (!entry.isFile() || !entry.name.endsWith(IPC_SCHEMA_EXTENSION)) continue;
+    const parent = entry.parentPath ?? entry.path;
+    files.push(path.relative(schemaFolder, path.join(parent, entry.name)));
+  }
+  return files.sort();
+}
+
 export async function generateWiring(opts: WiringOptions) {
-  const schemaFiles = (await fs.promises.readdir(opts.schemaFolder)).filter((schemaFile) => path.extname(schemaFile) === IPC_SCHEMA_EXTENSION);
+  const schemaFiles = await collectSchemaFiles(opts.schemaFolder);
 
   // Read and parse all schema files
   const modules: Module[] = [];
@@ -194,8 +210,7 @@ export async function watchWiring(opts: WiringOptions): Promise<WiringWatcher> {
 
   const scanForFiles = async (): Promise<string[]> => {
     try {
-      const files = await fs.promises.readdir(opts.schemaFolder);
-      return files.filter((f) => path.extname(f) === IPC_SCHEMA_EXTENSION);
+      return await collectSchemaFiles(opts.schemaFolder);
     } catch {
       return [];
     }
@@ -215,8 +230,8 @@ export async function watchWiring(opts: WiringOptions): Promise<WiringWatcher> {
   // Initial generation - throw on error so the promise rejects
   await generateWiring(opts);
 
-  // Watch the directory
-  const fsWatcher = fs.watch(opts.schemaFolder, { persistent: true }, async (eventType, filename) => {
+  // Watch the directory (recursive so changes in subdirectories also fire)
+  const fsWatcher = fs.watch(opts.schemaFolder, { persistent: true, recursive: true }, async (eventType, filename) => {
     if (watcher.closed) return;
     if (!filename) return;
 

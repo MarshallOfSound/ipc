@@ -1,0 +1,11 @@
+// Demonstrates that schemas can live in nested subdirectories of the schema
+// folder. This file declares the same `module example.simple` as
+// `../api.eipc` — they are merged before code generation.
+module example.simple
+
+[RendererAPI]
+[Validator=OnlyCustomProtocol]
+[ContextBridge]
+interface NestedDirExample {
+    GetNestedValue() -> string
+}
