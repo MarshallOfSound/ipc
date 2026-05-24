@@ -6,6 +6,7 @@
     "sourceMap": true,
     "strict": true,
     "outDir": "dist",
+    "rootDir": "src",
     "types": ["node"],
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
