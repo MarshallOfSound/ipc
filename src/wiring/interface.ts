@@ -1,6 +1,6 @@
 import { Controller } from '../controller.js';
 import type { Argument, Interface, Method, Module, TypeReference } from '../language/generated/ast.js';
-import { basePrimitives, eventValidator, INTERFACE_IMPL_PREFIX, ipcMessage, ipcStoreMessage, validator } from './_constants.js';
+import { basePrimitives, BROWSER_RUNTIME, eventValidator, INTERFACE_IMPL_PREFIX, IPC_PREFIX_CONST, ipcMessageSuffix, ipcStoreMessageSuffix, validator } from './_constants.js';
 import { getTSForTypeReference } from './identifier.js';
 
 enum InterfaceType {
@@ -14,23 +14,21 @@ type MethodTagInfo = {
   store: boolean;
 };
 
-const validatorFnOrPrimitiveValidator = (type: TypeReference, argName: string, nullable: boolean, optional: boolean): string => {
+/** Composes the browser-runtime validator expression for a type, e.g. `$eipc$.optional($eipc$.arrayOf($eipc$.string))`. */
+function runtimeValidator(type: TypeReference, nullable: boolean, optional: boolean): string {
   const baseType = type.reference;
-  let baseCheck = basePrimitives.includes(baseType) ? `(typeof ${argName} === '${baseType}')` : `${validator(baseType)}(${argName})`;
-  if (baseType === 'unknown') {
-    baseCheck = 'true';
-  }
+  let check = basePrimitives.includes(baseType) ? `${BROWSER_RUNTIME}.${baseType}` : validator(baseType);
   if (type.array) {
-    baseCheck = `(Array.isArray(${argName}) && ${argName}.every((v: any) => ${validatorFnOrPrimitiveValidator({ ...type, array: false } as TypeReference, 'v', false, false)}))`;
+    check = `${BROWSER_RUNTIME}.arrayOf(${check})`;
   }
   if (nullable) {
-    baseCheck = `(${argName} === null || (${baseCheck}))`;
+    check = `${BROWSER_RUNTIME}.nullable(${check})`;
   }
   if (optional) {
-    baseCheck = `(${argName} === undefined || (${baseCheck}))`;
+    check = `${BROWSER_RUNTIME}.optional(${check})`;
   }
-  return baseCheck;
-};
+  return check;
+}
 
 function methodTagInfo(method: Method) {
   const info: MethodTagInfo = {
@@ -134,6 +132,10 @@ function interfaceTagInfo(int: Interface) {
   };
 }
 
+// Local used inside emitted preload closures; $$-wrapped like the other
+// generated identifiers so it cannot collide with schema argument names.
+const CHANNEL = '$$channel$$';
+
 function upFirst(s: string) {
   return s[0].toUpperCase() + s.slice(1);
 }
@@ -162,168 +164,83 @@ function storeType(method: Method) {
   return `IPCStore<${inner}>`;
 }
 
+type InterfaceTagInfo = ReturnType<typeof interfaceTagInfo>;
+
+function dispatcherArgs(args: Argument[]) {
+  return args.map((arg) => `arg_${arg.name}${arg.optional ? '?' : ''}: ${getArgTypeString(arg)}${arg.nullable ? ' | null' : ''}`).join(', ');
+}
+
+/**
+ * Emits the browser-process side of an interface as data for the shared
+ * browser runtime (templates/browser-runtime.ts): a typed defineInterface()
+ * call with one row per method, store and event, plus the I<Name>Dispatcher
+ * type describing what setImplementation() returns. Row names are type-checked
+ * against I<Name>Impl / I<Name>Renderer / I<Name>Dispatcher by the runtime's
+ * signature. The runtime owns channel names, validation order and error text,
+ * so none of that is repeated per handler here.
+ */
+function browserImplementation(int: Interface, intInfo: InterfaceTagInfo): string[] {
+  const plainMethods = int.methods.filter((method) => {
+    const info = methodTagInfo(method);
+    return !info.event && !info.notImplemented && !info.store;
+  });
+  const storeMethods = int.methods.filter((method) => methodTagInfo(method).store);
+  const eventMethods = int.methods.filter((method) => {
+    const info = methodTagInfo(method);
+    return info.event && !info.notImplemented;
+  });
+
+  const argsRow = (args: Argument[]) => `[${args.map((arg) => `['${arg.name}', ${runtimeValidator(arg.type, arg.nullable, arg.optional)}]`).join(', ')}]`;
+  const methodRow = (method: Method) => {
+    const row = [`'${method.name}'`, argsRow(method.arguments)];
+    const sync = methodTagInfo(method).synchronous;
+    if (method.returnType) {
+      row.push(runtimeValidator(method.returnType.type, method.returnType.nullable, false));
+    } else if (sync) {
+      row.push('null');
+    }
+    if (sync) {
+      row.push("'sync'");
+    }
+    return `[${row.join(', ')}]`;
+  };
+  const storeRow = (method: Method) => `['${method.name}', ${runtimeValidator(method.returnType!.type, method.returnType!.nullable, false)}]`;
+  const eventRow = (event: Method) => `['${event.name}', ${argsRow(event.arguments)}]`;
+  const rows = (key: string, entries: string[]) => (entries.length === 0 ? [] : [`  ${key}: [`, ...entries.map((entry) => `    ${entry},`), '  ],']);
+
+  // A single [Validator] is passed by reference; several are and-ed together.
+  const origin =
+    intInfo.validators.length === 1
+      ? eventValidator(intInfo.validators[0])
+      : `(event: ${BROWSER_RUNTIME}.IncomingEvent) => ${intInfo.validators.map((v) => `${eventValidator(v)}(event)`).join(' && ')}`;
+
+  const dispatcherType = `I${int.name}Dispatcher`;
+  return [
+    `export interface ${dispatcherType} {`,
+    ...eventMethods.map((event) => `  dispatch${upFirst(event.name)}(${dispatcherArgs(event.arguments)}): void;`),
+    ...storeMethods.map(
+      (method) => `  update${upFirst(method.name)}Store(state: ${getTSForTypeReference(method.returnType!.type)}${method.returnType!.nullable ? ' | null' : ''}): void;`,
+    ),
+    '}',
+    `export const ${int.name} = /*#__PURE__*/ ${BROWSER_RUNTIME}.defineInterface<I${int.name}Impl, I${int.name}Renderer, ${dispatcherType}>(${IPC_PREFIX_CONST}, '${int.name}', ${origin}, {`,
+    ...rows('methods', plainMethods.map(methodRow)),
+    ...rows('stores', storeMethods.map(storeRow)),
+    ...rows('events', eventMethods.map(eventRow)),
+    '});',
+  ];
+}
+
 export function wireInterface(int: Interface, module: Module, allowedTypes: Set<string>, controller: Controller): void {
   const intInfo = interfaceTagInfo(int);
 
   if (intInfo.interfaceType === InterfaceType.RendererAPI) {
     const initializerName = `${INTERFACE_IMPL_PREFIX}_init_${int.name}`;
-    const interfaceImplementation = [
-      `const ${int.name}_dispatchers = new WeakMap<Electron.WebContents | Electron.WebFrameMain, ReturnType<ReturnType<typeof ${int.name}['for']>['setImplementation']>>()`,
-      `export const ${int.name} = {`,
-      `  getDispatcher(target: Electron.WebContents | Electron.WebFrameMain) {`,
-      `    return ${int.name}_dispatchers.get(target);`,
-      `  },`,
-      `  for(target: Electron.WebContents | Electron.WebFrameMain) {`,
-      `    return {`,
-      `      setImplementation: (impl: I${int.name}Impl) => {`,
-      ...int.methods
-        .filter((method) => {
-          const info = methodTagInfo(method);
-          return !info.event && !info.notImplemented && !info.store;
-        })
-        .map((method) => {
-          const tags = methodTagInfo(method);
-          if (tags.synchronous) {
-            // Sync handlers need try/catch to avoid hanging on errors
-            return [
-              `        target.ipc.removeAllListeners('${ipcMessage(module, int, method)}');`,
-              `target.ipc.on('${ipcMessage(module, int, method)}', async (event${method.arguments.length ? ', ' : ''}${method.arguments
-                .map((arg) => `arg_${arg.name}: ${getArgTypeString(arg)}`)
-                .join(', ')}) => {`,
-              `  try {`,
-              `    if (!(${intInfo.validators.map((v) => `(${eventValidator(v)}(event))`).join(' && ')})) {`,
-              `      throw new Error(\`Incoming "${method.name}" call on interface "${int.name}" from \'$\{event.senderFrame?.url}\' did not pass origin validation\`);`,
-              '    }',
-              ...method.arguments.map(
-                (arg, index) =>
-                  `    if (!${validatorFnOrPrimitiveValidator(arg.type, `arg_${arg.name}`, arg.nullable, arg.optional)}) throw new Error('Argument "${arg.name}" at position ${index} to method "${
-                    method.name
-                  }" in interface "${int.name}" failed to pass validation');`,
-              ),
-              `    ${method.returnType === undefined ? '' : 'const result = '}await impl.${method.name}(${method.arguments.map((arg) => `arg_${arg.name}`).join(', ')});`,
-              ...(method.returnType === undefined
-                ? [`    event.returnValue = { result: undefined };`]
-                : [
-                    `    if (!${validatorFnOrPrimitiveValidator(method.returnType.type, 'result', method.returnType.nullable, false)}) throw new Error('Result from method "${method.name}" in interface "${
-                      int.name
-                    }" failed to pass validation');`,
-                    `    event.returnValue = { result };`,
-                  ]),
-              `  } catch (err) {`,
-              `    event.returnValue = { error: err instanceof Error ? err.message : String(err) };`,
-              `  }`,
-              `});`,
-            ].join('\n        ');
-          }
-          // Async handlers
-          return [
-            `        target.ipc.removeHandler('${ipcMessage(module, int, method)}');`,
-            `target.ipc.handle('${ipcMessage(module, int, method)}', async (event${method.arguments.length ? ', ' : ''}${method.arguments
-              .map((arg) => `arg_${arg.name}: ${getArgTypeString(arg)}`)
-              .join(', ')}) => {`,
-            `  if (!(${intInfo.validators.map((v) => `(${eventValidator(v)}(event))`).join(' && ')})) {`,
-            `    throw new Error(\`Incoming "${method.name}" call on interface "${int.name}" from \'$\{event.senderFrame?.url}\' did not pass origin validation\`);`,
-            '  }',
-            ...method.arguments.map(
-              (arg, index) =>
-                `  if (!${validatorFnOrPrimitiveValidator(arg.type, `arg_${arg.name}`, arg.nullable, arg.optional)}) throw new Error('Argument "${arg.name}" at position ${index} to method "${
-                  method.name
-                }" in interface "${int.name}" failed to pass validation');`,
-            ),
-            `  ${method.returnType === undefined ? '' : 'const result = '}await impl.${method.name}(${method.arguments.map((arg) => `arg_${arg.name}`).join(', ')});`,
-            ...(method.returnType === undefined
-              ? []
-              : [
-                  `  if (!${validatorFnOrPrimitiveValidator(method.returnType.type, 'result', method.returnType.nullable, false)}) throw new Error('Result from method "${method.name}" in interface "${
-                    int.name
-                  }" failed to pass validation');`,
-                  '  return result;',
-                ]),
-            `});`,
-          ].join('\n        ');
-        }),
-      // Store handlers (getState async and getStateSync)
-      ...int.methods
-        .filter((method) => methodTagInfo(method).store)
-        .flatMap((method) => {
-          const implMethodName = `getInitial${upFirst(method.name)}State`;
-          const returnValidator = method.returnType ? validatorFnOrPrimitiveValidator(method.returnType.type, 'result', method.returnType.nullable, false) : 'true';
-          return [
-            // getState handler (async)
-            [
-              `        target.ipc.removeHandler('${ipcStoreMessage(module, int, method, 'getState')}');`,
-              `target.ipc.handle('${ipcStoreMessage(module, int, method, 'getState')}', async (event) => {`,
-              `  if (!(${intInfo.validators.map((v) => `(${eventValidator(v)}(event))`).join(' && ')})) {`,
-              `    throw new Error(\`Incoming "${method.name}" store getState call on interface "${int.name}" from \'$\{event.senderFrame?.url}\' did not pass origin validation\`);`,
-              '  }',
-              `  const result = await impl.${implMethodName}();`,
-              `  if (!${returnValidator}) throw new Error('Result from store "${method.name}" getInitialState in interface "${int.name}" failed to pass validation');`,
-              `  return result;`,
-              `});`,
-            ].join('\n        '),
-            // getStateSync handler (sync)
-            [
-              `        target.ipc.removeAllListeners('${ipcStoreMessage(module, int, method, 'getStateSync')}');`,
-              `target.ipc.on('${ipcStoreMessage(module, int, method, 'getStateSync')}', async (event) => {`,
-              `  try {`,
-              `    if (!(${intInfo.validators.map((v) => `(${eventValidator(v)}(event))`).join(' && ')})) {`,
-              `      throw new Error(\`Incoming "${method.name}" store getStateSync call on interface "${int.name}" from \'$\{event.senderFrame?.url}\' did not pass origin validation\`);`,
-              '    }',
-              `    const result = await impl.${implMethodName}();`,
-              `    if (!${returnValidator}) throw new Error('Result from store "${method.name}" getInitialState in interface "${int.name}" failed to pass validation');`,
-              `    event.returnValue = { result };`,
-              `  } catch (err) {`,
-              `    event.returnValue = { error: err instanceof Error ? err.message : String(err) };`,
-              `  }`,
-              `});`,
-            ].join('\n        '),
-          ];
-        }),
-      `        const dis = {`,
-      ...int.methods
-        .filter((m) => {
-          const info = methodTagInfo(m);
-          return info.event && !info.notImplemented;
-        })
-        .map((event) =>
-          [
-            `dispatch${upFirst(event.name)}(${event.arguments.map((arg) => `arg_${arg.name}${arg.optional ? '?' : ''}: ${getArgTypeString(arg)}${arg.nullable ? ' | null' : ''}`).join(', ')}): void {`,
-            ...event.arguments.map(
-              (arg, index) =>
-                `  if (!${validatorFnOrPrimitiveValidator(arg.type, `arg_${arg.name}`, arg.nullable, arg.optional)}) throw new Error('Argument "${arg.name}" at position ${index} to event "${
-                  event.name
-                }" in interface "${int.name}" failed to pass validation');`,
-            ),
-            `  target.send('${ipcMessage(module, int, event)}'${event.arguments.length > 0 ? ', ' : ''}${event.arguments.map((arg) => `arg_${arg.name}`).join(', ')})`,
-            '},',
-          ]
-            .map((s) => `          ${s}`)
-            .join('\n'),
-        ),
-      // Store update dispatchers
-      ...int.methods
-        .filter((m) => methodTagInfo(m).store)
-        .map((method) => {
-          const innerBase = method.returnType ? getTSForTypeReference(method.returnType.type) : 'void';
-          const inner = method.returnType === undefined ? 'void' : `${innerBase}${method.returnType.nullable ? ' | null' : ''}`;
-          const stateValidator = method.returnType ? validatorFnOrPrimitiveValidator(method.returnType.type, 'state', method.returnType.nullable, false) : 'true';
-          return [
-            `update${upFirst(method.name)}Store(state: ${inner}): void {`,
-            `  if (!${stateValidator}) throw new Error('State passed to update${upFirst(method.name)}Store in interface "${int.name}" failed to pass validation');`,
-            `  target.send('${ipcStoreMessage(module, int, method, 'update')}', state)`,
-            '},',
-          ]
-            .map((s) => `          ${s}`)
-            .join('\n');
-        }),
-      `        };`,
-      `        ${int.name}_dispatchers.set(target, dis)`,
-      `        return dis;`,
-      '      }',
-      `    };`,
-      `  }`,
-      '}',
-    ];
+    // Preload channel expressions: the per-module prefix is emitted once as a
+    // const at the top of the file, each call site appends its own suffix.
+    const channel = (method: Method) => `${IPC_PREFIX_CONST} + '${ipcMessageSuffix(int, method)}'`;
+    const storeChannel = (method: Method, op: 'getState' | 'getStateSync' | 'update') => `${IPC_PREFIX_CONST} + '${ipcStoreMessageSuffix(int, method, op)}'`;
+
+    const interfaceImplementation = browserImplementation(int, intInfo);
 
     const interfaceDefinition = [
       `export interface I${int.name}Impl {`,
@@ -376,15 +293,16 @@ export function wireInterface(int: Interface, module: Module, allowedTypes: Set<
             return [
               `  on${upFirst(method.name)}(fn: (${argsString}) => void) {`,
               `    const handler = (e: unknown, ${argsString}) => fn(${method.arguments.map((arg) => arg.name).join(', ')});`,
-              `    ipcRenderer.on('${ipcMessage(module, int, method)}', handler)`,
-              `    return () => { ipcRenderer.removeListener('${ipcMessage(module, int, method)}', handler); };`,
+              `    const ${CHANNEL} = ${channel(method)};`,
+              `    ipcRenderer.on(${CHANNEL}, handler)`,
+              `    return () => { ipcRenderer.removeListener(${CHANNEL}, handler); };`,
               `  },`,
             ].join('\n');
           }
           if (info.synchronous) {
             return [
               `  ${method.name}(${argsString}) {`,
-              `    const response = ipcRenderer.sendSync('${ipcMessage(module, int, method)}'${method.arguments.length ? ', ' : ''}${method.arguments.map((arg) => arg.name).join(', ')});`,
+              `    const response = ipcRenderer.sendSync(${channel(method)}${method.arguments.length ? ', ' : ''}${method.arguments.map((arg) => arg.name).join(', ')});`,
               `    if (response.error) throw new Error(response.error);`,
               `    return response.result;`,
               `  },`,
@@ -392,7 +310,7 @@ export function wireInterface(int: Interface, module: Module, allowedTypes: Set<
           }
           return [
             `  ${method.name}(${argsString}) {`,
-            `    return ipcRenderer.invoke('${ipcMessage(module, int, method)}'${method.arguments.length ? ', ' : ''}${method.arguments.map((arg) => arg.name).join(', ')});`,
+            `    return ipcRenderer.invoke(${channel(method)}${method.arguments.length ? ', ' : ''}${method.arguments.map((arg) => arg.name).join(', ')});`,
             '  },',
           ].join('\n');
         }),
@@ -405,17 +323,18 @@ export function wireInterface(int: Interface, module: Module, allowedTypes: Set<
           return [
             `  ${method.name}Store: {`,
             `    getState(): Promise<${inner}> {`,
-            `      return ipcRenderer.invoke('${ipcStoreMessage(module, int, method, 'getState')}');`,
+            `      return ipcRenderer.invoke(${storeChannel(method, 'getState')});`,
             `    },`,
             `    getStateSync(): ${inner} {`,
-            `      const response = ipcRenderer.sendSync('${ipcStoreMessage(module, int, method, 'getStateSync')}');`,
+            `      const response = ipcRenderer.sendSync(${storeChannel(method, 'getStateSync')});`,
             `      if (response.error) throw new Error(response.error);`,
             `      return response.result;`,
             `    },`,
             `    onStateChange(fn: (newState: ${inner}) => void): () => void {`,
             `      const handler = (_e: unknown, newState: ${inner}) => fn(newState);`,
-            `      ipcRenderer.on('${ipcStoreMessage(module, int, method, 'update')}', handler);`,
-            `      return () => { ipcRenderer.removeListener('${ipcStoreMessage(module, int, method, 'update')}', handler); };`,
+            `      const ${CHANNEL} = ${storeChannel(method, 'update')};`,
+            `      ipcRenderer.on(${CHANNEL}, handler);`,
+            `      return () => { ipcRenderer.removeListener(${CHANNEL}, handler); };`,
             `    },`,
             `  },`,
           ].join('\n');
@@ -441,6 +360,7 @@ export function wireInterface(int: Interface, module: Module, allowedTypes: Set<
     controller.addBrowserCode(interfaceImplementation.join('\n'));
     controller.addPreloadCode(rendererDefinition.join('\n'));
     controller.addBrowserExport(int.name);
+    controller.addBrowserTypeExport(`I${int.name}Dispatcher`);
     controller.addPreloadExport(int.name);
     controller.addCommonExport(`I${int.name}Impl`);
     controller.addCommonExport(`I${int.name}Renderer`);

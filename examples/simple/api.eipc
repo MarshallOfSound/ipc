@@ -129,3 +129,19 @@ interface ComputerInfo {
 interface CustomProtocolAPI {
     GetSecureData() -> string
 }
+
+// Demonstrates the table-driven browser output: several [Validator] tags are
+// and-ed into one origin check, and array / optional / unknown arguments and a
+// void [Sync] method are described as rows for _internal/browser-runtime.ts
+// rather than as a closure per method.
+[RendererAPI]
+[Validator=OnlyCustomProtocol]
+[Validator=AdminPagesOnly]
+[ContextBridge]
+interface BulkOperations {
+    Import(items: ComputerStuff[], tags: string[], meta: unknown, dryRun?: boolean) -> number
+    [Sync]
+    ResetSync(hard: boolean)
+    [Event]
+    progress(done: number, total: number)
+}

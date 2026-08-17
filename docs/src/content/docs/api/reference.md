@@ -136,8 +136,11 @@ src/ipc/
 ├── common-runtime/   # Runtime utilities
 │   └── {module}.ts
 └── _internal/        # Internal generated code
+    ├── browser-runtime.ts  # Shared main-process runtime the browser/ files are built on
     └── ...
 ```
+
+The `browser/{module}.ts` files describe each interface as data (one row per method, store and event) and hand it to `_internal/browser-runtime.ts`, which registers the `ipcMain` handlers and builds the dispatcher. That keeps the main-process output small even for schemas with hundreds of methods.
 
 ### Safety Check
 

@@ -1,6 +1,7 @@
 export class Controller {
   private browserCode: string[] = [];
   private browserExports: string[] = [];
+  private browserTypeExports: string[] = [];
   private preloadCode: string[] = [];
   private preloadExports: string[] = [];
   private preloadImports: string[] = [];
@@ -23,6 +24,10 @@ export class Controller {
 
   addBrowserExport(name: string): void {
     this.browserExports.push(name);
+  }
+
+  addBrowserTypeExport(name: string): void {
+    this.browserTypeExports.push(name);
   }
 
   addPreloadCode(code: string): void {
@@ -91,6 +96,10 @@ export class Controller {
 
   getBrowserExports(): string[] {
     return this.browserExports;
+  }
+
+  getBrowserTypeExports(): string[] {
+    return this.browserTypeExports;
   }
 
   getPreloadCode(): string[] {

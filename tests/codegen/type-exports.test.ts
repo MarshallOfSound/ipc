@@ -69,11 +69,11 @@ describe('Type-only exports in barrel files', () => {
     });
   });
 
-  describe('browser barrel file is unaffected', () => {
-    it('only has value exports', async () => {
+  describe('browser barrel file', () => {
+    it('re-exports the interface as a value and its dispatcher as a type', async () => {
       const wiring = await generateWiringFromString(baseSchema);
       expect(wiring.browser.external).toContain('export { AppService }');
-      expect(wiring.browser.external).not.toContain('export type');
+      expect(wiring.browser.external).toContain('export type { IAppServiceDispatcher }');
     });
   });
 

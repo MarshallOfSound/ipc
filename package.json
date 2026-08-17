@@ -19,12 +19,12 @@
   "license": "MIT",
   "scripts": {
     "langium:generate": "langium generate",
-    "build": "yarn langium:generate && tsc",
+    "build": "yarn langium:generate && tsc && tsc -p templates/tsconfig.json",
     "build:vscode": "yarn workspace eipc-language build",
     "build:docs": "yarn workspace eipc-docs build",
     "dev:docs": "yarn workspace eipc-docs dev",
-    "lint": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\" \"tests/**/*.tsx\"",
-    "lint:fix": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\" \"tests/**/*.tsx\"",
+    "lint": "prettier --check \"src/**/*.ts\" \"templates/**/*.ts\" \"tests/**/*.ts\" \"tests/**/*.tsx\"",
+    "lint:fix": "prettier --write \"src/**/*.ts\" \"templates/**/*.ts\" \"tests/**/*.ts\" \"tests/**/*.tsx\"",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "yarn test:e2e:build && playwright test",
@@ -56,6 +56,7 @@
   },
   "files": [
     "dist",
+    "templates/browser-runtime.ts",
     "LICENSE"
   ],
   "peerDependencies": {

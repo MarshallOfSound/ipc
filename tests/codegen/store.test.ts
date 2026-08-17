@@ -69,26 +69,25 @@ describe('Store codegen', () => {
       expect(wiring.browser.internal).toContain('updateCounterStore(state: number): void');
     });
 
-    it('generates getState handler', async () => {
+    it('generates a store row for the browser runtime', async () => {
       const schema = baseSchema(`
     [Store]
     counter() -> number
 `);
       const wiring = await generateWiringFromString(schema);
-      expect(wiring.browser.internal).toContain('_$store$_getState');
-      expect(wiring.browser.internal).toContain('impl.getInitialCounterState()');
+      // Store rows are served by defineInterface (browser-runtime.ts) on the
+      // _$store$_getState / _$store$_getStateSync channels; see browser-wiring.test.ts.
+      expect(wiring.browser.internal).toContain("stores: [\n    ['counter', $eipc$.number],\n  ],");
     });
 
-    it('generates getStateSync handler with try/catch', async () => {
+    it('wraps nullable store state validators', async () => {
       const schema = baseSchema(`
     [Store]
-    counter() -> number
+    counter() -> number?
 `);
       const wiring = await generateWiringFromString(schema);
-      expect(wiring.browser.internal).toContain('_$store$_getStateSync');
-      expect(wiring.browser.internal).toContain('try {');
-      expect(wiring.browser.internal).toContain('event.returnValue = { result }');
-      expect(wiring.browser.internal).toContain('event.returnValue = { error:');
+      expect(wiring.browser.internal).toContain("['counter', $eipc$.nullable($eipc$.number)]");
+      expect(wiring.browser.internal).toContain('updateCounterStore(state: number | null): void;');
     });
   });
 
