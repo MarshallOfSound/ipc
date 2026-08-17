@@ -99,13 +99,16 @@ function invalidStoreUpdate(iface: string, store: string): Error {
 
 // Validates the declared arguments in order and returns exactly that many
 // (extra incoming values are dropped, missing ones stay undefined), which is
-// what the implementation is then called with.
+// what the implementation is then called with. Plain loop: this is on the hot
+// path of every call.
 function checkArguments(iface: string, kind: 'method' | 'event', method: string, args: Args, incoming: readonly unknown[]): unknown[] {
-  return args.map(([name, validator], position) => {
+  const checked = new Array<unknown>(args.length);
+  for (let position = 0; position < args.length; position++) {
     const value = incoming[position];
-    if (!validator(value)) throw invalidArgument(iface, kind, method, name, position);
-    return value;
-  });
+    if (!args[position]![1](value)) throw invalidArgument(iface, kind, method, args[position]![0], position);
+    checked[position] = value;
+  }
+  return checked;
 }
 
 type Handler = (event: IncomingEvent, ...incoming: unknown[]) => Promise<unknown>;
@@ -148,8 +151,7 @@ export function defineInterface<Impl, Renderer, Dispatcher>(
             const channel = prefix + method;
             const handler: Handler = async (event, ...incoming) => {
               if (!validateOrigin(event)) throw invalidOrigin(iface, event, method);
-              const checked = checkArguments(iface, 'method', method, args, incoming);
-              const value = await call(method, checked);
+              const value = await call(method, checkArguments(iface, 'method', method, args, incoming));
               if (!result) return undefined;
               if (!result(value)) throw invalidResult(iface, method);
               return value;
