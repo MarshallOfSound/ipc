@@ -106,7 +106,7 @@ enum Status {
         'GetStatus() -> Status',
       );
       const wiring = await generateWiringFromString(schema);
-      expect(wiring.browser.internal).toContain('$eipc_validator$_Status(result)');
+      expect(wiring.browser.internal).toContain("['GetStatus', [], $eipc_validator$_Status]");
     });
   });
 

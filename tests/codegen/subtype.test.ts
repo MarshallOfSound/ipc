@@ -218,7 +218,7 @@ subtype BadNumber = number(
       );
       const wiring = await generateWiringFromString(schema);
       // Browser should validate the return value
-      expect(wiring.browser.internal).toContain('$eipc_validator$_UserId(result)');
+      expect(wiring.browser.internal).toContain("['GetUserId', [], $eipc_validator$_UserId]");
     });
   });
 

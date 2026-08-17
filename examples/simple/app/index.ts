@@ -1,6 +1,6 @@
 import { app, BrowserWindow } from 'electron';
 import * as path from 'path';
-import { ComputerInfo } from './ipc/browser/example.simple';
+import { ComputerInfo, BulkOperations, type IBulkOperationsDispatcher } from './ipc/browser/example.simple';
 
 app.whenReady().then(() => {
   const window = new BrowserWindow({
@@ -43,4 +43,15 @@ app.whenReady().then(() => {
       return { success: true };
     },
   });
+
+  const bulk: IBulkOperationsDispatcher = BulkOperations.for(window.webContents.mainFrame).setImplementation({
+    async Import(items, tags, meta, dryRun) {
+      console.log(`Importing ${items.length} items tagged ${tags.join(', ')} (dryRun=${dryRun ?? false})`, meta);
+      return items.length;
+    },
+    ResetSync(hard) {
+      console.log(`Reset requested (hard=${hard})`);
+    },
+  });
+  bulk.dispatchProgress(0, 1);
 });

@@ -19,33 +19,32 @@ describe('Methods codegen', () => {
     it('generates async handler with invoke', async () => {
       const schema = withMethods('    GetValue() -> string');
       const wiring = await generateWiringFromString(schema);
-      expect(wiring.browser.internal).toContain('target.ipc.handle');
+      expect(wiring.browser.internal).toContain("['GetValue', [], $eipc$.string]");
       expect(wiring.preload.internal).toContain('ipcRenderer.invoke');
     });
 
     it('generates async method with arguments', async () => {
       const schema = withMethods('    GetUser(id: string, includeDetails: boolean) -> string');
       const wiring = await generateWiringFromString(schema);
-      expect(wiring.browser.internal).toContain('arg_id');
-      expect(wiring.browser.internal).toContain('arg_includeDetails');
+      expect(wiring.browser.internal).toContain("['GetUser', [['id', $eipc$.string], ['includeDetails', $eipc$.boolean]], $eipc$.string]");
     });
 
     it('validates arguments in async method', async () => {
       const schema = withMethods('    GetUser(id: string) -> string');
       const wiring = await generateWiringFromString(schema);
-      expect(wiring.browser.internal).toContain("typeof arg_id === 'string'");
+      expect(wiring.browser.internal).toContain("[['id', $eipc$.string]]");
     });
 
     it('validates return value in async method', async () => {
       const schema = withMethods('    GetValue() -> string');
       const wiring = await generateWiringFromString(schema);
-      expect(wiring.browser.internal).toContain("typeof result === 'string'");
+      expect(wiring.browser.internal).toContain("['GetValue', [], $eipc$.string]");
     });
 
     it('handles nullable return type', async () => {
       const schema = withMethods('    GetValue() -> string?');
       const wiring = await generateWiringFromString(schema);
-      expect(wiring.browser.internal).toContain('result === null');
+      expect(wiring.browser.internal).toContain("['GetValue', [], $eipc$.nullable($eipc$.string)]");
       expect(wiring.common.internal).toContain('string | null');
     });
 
@@ -61,18 +60,15 @@ describe('Methods codegen', () => {
       const schema = withMethods(`    [Sync]
     GetValueSync() -> string`);
       const wiring = await generateWiringFromString(schema);
-      expect(wiring.browser.internal).toContain('target.ipc.on');
-      expect(wiring.browser.internal).toContain('event.returnValue');
+      expect(wiring.browser.internal).toContain("['GetValueSync', [], $eipc$.string, 'sync']");
       expect(wiring.preload.internal).toContain('ipcRenderer.sendSync');
     });
 
-    it('wraps sync handler in try/catch', async () => {
+    it('marks void sync methods with a null result validator', async () => {
       const schema = withMethods(`    [Sync]
-    GetValueSync() -> string`);
+    ResetSync(hard: boolean)`);
       const wiring = await generateWiringFromString(schema);
-      expect(wiring.browser.internal).toContain('try {');
-      expect(wiring.browser.internal).toContain('catch (err)');
-      expect(wiring.browser.internal).toContain('event.returnValue = { error:');
+      expect(wiring.browser.internal).toContain("['ResetSync', [['hard', $eipc$.boolean]], null, 'sync']");
     });
 
     it('renderer throws on sync error', async () => {
@@ -89,8 +85,8 @@ describe('Methods codegen', () => {
       const schema = withMethods(`    [Event]
     OnValueChanged(newValue: string)`);
       const wiring = await generateWiringFromString(schema);
-      expect(wiring.browser.internal).toContain('dispatchOnValueChanged');
-      expect(wiring.browser.internal).toContain('target.send');
+      expect(wiring.browser.internal).toContain('dispatchOnValueChanged(arg_newValue: string): void;');
+      expect(wiring.browser.internal).toContain("['OnValueChanged', [['newValue', $eipc$.string]]]");
     });
 
     it('generates event listener in renderer', async () => {
@@ -106,7 +102,7 @@ describe('Methods codegen', () => {
       const schema = withMethods(`    [Event]
     OnValueChanged(value: number)`);
       const wiring = await generateWiringFromString(schema);
-      expect(wiring.browser.internal).toContain("typeof arg_value === 'number'");
+      expect(wiring.browser.internal).toContain("['OnValueChanged', [['value', $eipc$.number]]]");
     });
 
     it('events have no return type in renderer interface', async () => {
@@ -135,31 +131,31 @@ describe('Methods codegen', () => {
     it('validates string argument', async () => {
       const schema = withMethods('    Process(value: string) -> string');
       const wiring = await generateWiringFromString(schema);
-      expect(wiring.browser.internal).toContain("typeof arg_value === 'string'");
+      expect(wiring.browser.internal).toContain("[['value', $eipc$.string]]");
     });
 
     it('validates number argument', async () => {
       const schema = withMethods('    Process(value: number) -> string');
       const wiring = await generateWiringFromString(schema);
-      expect(wiring.browser.internal).toContain("typeof arg_value === 'number'");
+      expect(wiring.browser.internal).toContain("[['value', $eipc$.number]]");
     });
 
     it('validates boolean argument', async () => {
       const schema = withMethods('    Process(value: boolean) -> string');
       const wiring = await generateWiringFromString(schema);
-      expect(wiring.browser.internal).toContain("typeof arg_value === 'boolean'");
+      expect(wiring.browser.internal).toContain("[['value', $eipc$.boolean]]");
     });
 
     it('validates array argument', async () => {
       const schema = withMethods('    Process(values: string[]) -> string');
       const wiring = await generateWiringFromString(schema);
-      expect(wiring.browser.internal).toContain('Array.isArray');
+      expect(wiring.browser.internal).toContain("[['values', $eipc$.arrayOf($eipc$.string)]]");
     });
 
     it('validates nullable argument', async () => {
       const schema = withMethods('    Process(value: string?) -> string');
       const wiring = await generateWiringFromString(schema);
-      expect(wiring.browser.internal).toContain('arg_value === null');
+      expect(wiring.browser.internal).toContain("[['value', $eipc$.nullable($eipc$.string)]]");
     });
   });
 
@@ -167,19 +163,19 @@ describe('Methods codegen', () => {
     it('validates string return', async () => {
       const schema = withMethods('    GetValue() -> string');
       const wiring = await generateWiringFromString(schema);
-      expect(wiring.browser.internal).toContain("typeof result === 'string'");
+      expect(wiring.browser.internal).toContain("['GetValue', [], $eipc$.string]");
     });
 
     it('validates array return', async () => {
       const schema = withMethods('    GetValues() -> string[]');
       const wiring = await generateWiringFromString(schema);
-      expect(wiring.browser.internal).toContain('Array.isArray(result)');
+      expect(wiring.browser.internal).toContain("['GetValues', [], $eipc$.arrayOf($eipc$.string)]");
     });
 
     it('validates nullable return', async () => {
       const schema = withMethods('    GetValue() -> string?');
       const wiring = await generateWiringFromString(schema);
-      expect(wiring.browser.internal).toContain('result === null');
+      expect(wiring.browser.internal).toContain("['GetValue', [], $eipc$.nullable($eipc$.string)]");
     });
   });
 
@@ -187,8 +183,8 @@ describe('Methods codegen', () => {
     it('generates method without return validation', async () => {
       const schema = withMethods('    DoSomething(value: string)');
       const wiring = await generateWiringFromString(schema);
-      // Should not have result validation
-      expect(wiring.browser.internal).not.toContain('const result =');
+      // Row carries no result validator
+      expect(wiring.browser.internal).toContain("['DoSomething', [['value', $eipc$.string]]],");
     });
   });
 
@@ -246,8 +242,7 @@ describe('Methods codegen', () => {
     it('allows "type" as a parameter name', async () => {
       const schema = withMethods('    SendMessage(type: string, payload: string) -> string');
       const wiring = await generateWiringFromString(schema);
-      expect(wiring.browser.internal).toContain('arg_type');
-      expect(wiring.browser.internal).toContain("typeof arg_type === 'string'");
+      expect(wiring.browser.internal).toContain("[['type', $eipc$.string], ['payload', $eipc$.string]]");
     });
   });
 

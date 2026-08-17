@@ -4,7 +4,7 @@ import { EventEmitter } from 'node:events';
 
 import { parseEipc, formatParseError, type ParseError } from './language/parser.js';
 import type { Module } from './language/generated/ast.js';
-import { buildWiring } from './wire.js';
+import { BROWSER_RUNTIME_FILE, buildWiring } from './wire.js';
 
 interface WiringOptions {
   /**
@@ -22,6 +22,9 @@ interface WiringOptions {
 
 const IPC_SCHEMA_EXTENSION = '.eipc';
 const MARKER_FILE = '.eipc-generated';
+// Shipped as source in the package and copied verbatim into the wiring folder;
+// the generated browser files import it.
+const BROWSER_RUNTIME_TEMPLATE = new URL('../templates/browser-runtime.ts', import.meta.url);
 
 /**
  * Recursively collect schema files from a folder, returning paths relative to
@@ -103,6 +106,8 @@ export async function generateWiring(opts: WiringOptions) {
       });
     }
   }
+
+  await fs.promises.writeFile(path.resolve(opts.wiringFolder, '_internal', BROWSER_RUNTIME_FILE), disableEslint(await fs.promises.readFile(BROWSER_RUNTIME_TEMPLATE, 'utf8')));
 
   const flatModules = [...mergedModules.values()];
 

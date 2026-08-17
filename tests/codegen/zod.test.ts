@@ -103,7 +103,7 @@ zod_reference Email {
         'CreateUser() -> UserId',
       );
       const wiring = await generateWiringFromString(schema);
-      expect(wiring.browser.internal).toContain('$eipc_validator$_UserId(result)');
+      expect(wiring.browser.internal).toContain("['CreateUser', [], $eipc_validator$_UserId]");
     });
   });
 

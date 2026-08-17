@@ -23,8 +23,19 @@ import { wireInterface } from './wiring/interface.js';
 import { wireStructure } from './wiring/structure.js';
 import { wireSubtype } from './wiring/subtype.js';
 import { wireValidator } from './wiring/validator.js';
-import { IPC_MESSAGE_PREFIX } from './wiring/_constants.js';
+import { BROWSER_RUNTIME, IPC_PREFIX_CONST, ipcModulePrefix } from './wiring/_constants.js';
 import { wireZodReference } from './wiring/zod.js';
+
+/** Written once to _internal/; every _internal/browser/<module>.ts imports it. */
+export const BROWSER_RUNTIME_FILE = 'browser-runtime.ts';
+
+// Emitted at the top of each browser file so the rows below it can be read
+// without opening the runtime.
+const BROWSER_ROWS_LEGEND = `// Interfaces are declared as data and wired up by ../${BROWSER_RUNTIME_FILE}:
+//   methods: [name, [[argName, validator], ...], resultValidator?]  ([Sync] methods append null|validator, 'sync')
+//   stores:  [name, stateValidator]
+//   events:  [name, [[argName, validator], ...]]
+`;
 
 // Re-export the AST types for use by consumers
 export type { Module, Enum, Interface, Structure, SubType, Validator, ZodReference } from './language/generated/ast.js';
@@ -257,6 +268,7 @@ export function buildWiring(module: Module): WiringOutput {
   const preloadExports = controller.getPreloadExports();
   const rendererExports = controller.getRendererExports();
   const rendererHooksExports = controller.getRendererHooksExports();
+  const browserTypeExports = controller.getBrowserTypeExports();
   const rendererTypeExports = controller.getRendererTypeExports();
   const rendererHooksTypeExports = controller.getRendererHooksTypeExports();
   const commonExports = controller.getCommonExports();
@@ -283,6 +295,11 @@ export function buildWiring(module: Module): WiringOutput {
   if (commonRuntimeExports.length > 0) {
     browser += `import { ${commonRuntimeExports.join(', ')} } from '../common-runtime/${module.name}.js';\n`;
   }
+  if (browserExports.length > 0) {
+    browser += `import * as ${BROWSER_RUNTIME} from '../${BROWSER_RUNTIME_FILE.replace(/\.ts$/, '.js')}';\n`;
+    browser += `const ${IPC_PREFIX_CONST} = '${ipcModulePrefix(module)}';\n`;
+    browser += BROWSER_ROWS_LEGEND;
+  }
   browser += controller.getBrowserCode().join('\n');
 
   // Preload internal
@@ -292,6 +309,9 @@ export function buildWiring(module: Module): WiringOutput {
   }
   if (commonRuntimeExports.length > 0) {
     preload += `import { ${commonRuntimeExports.join(', ')} } from '../common-runtime/${module.name}.js';\n`;
+  }
+  if (preloadExports.length > 0) {
+    preload += `const ${IPC_PREFIX_CONST} = '${ipcModulePrefix(module)}';\n`;
   }
   const preloadCode = controller.getPreloadCode().join('\n');
   preload += preloadCode;
@@ -325,7 +345,7 @@ export function buildWiring(module: Module): WiringOutput {
   return {
     browser: {
       internal: browser,
-      external: externalFile('browser', browserExports),
+      external: externalFile('browser', browserExports, browserTypeExports),
     },
     preload: {
       internal: preload,

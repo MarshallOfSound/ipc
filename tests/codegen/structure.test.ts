@@ -203,7 +203,7 @@ structure User {
         'GetUser() -> User',
       );
       const wiring = await generateWiringFromString(schema);
-      expect(wiring.browser.internal).toContain('$eipc_validator$_User(result)');
+      expect(wiring.browser.internal).toContain("['GetUser', [], $eipc_validator$_User]");
     });
   });
 
